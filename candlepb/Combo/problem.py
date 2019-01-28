@@ -32,7 +32,7 @@ Problem.add_dim('hyperparameters', {
     'batch_size': 100,
     'learning_rate': 0.01,
     'optimizer': 'adam',
-    'num_epochs': 10,
+    'num_epochs': 0,
     'loss_metric': 'mean_squared_error',
     'metrics': ['mean_squared_error']
 })
