@@ -589,7 +589,7 @@ def load_data_combo():
     params = initialize_parameters()
     return run(params)
 
-def load_data_deephyper():
+def load_data_deephyper(prop=0.1):
     params = initialize_parameters()
     args = Struct(**params)
     set_seed(args.rng_seed)
@@ -607,24 +607,33 @@ def load_data_deephyper():
                              response_url=args.response_url,
                              use_landmark_genes=args.use_landmark_genes,
                              preprocess_rnaseq=args.preprocess_rnaseq,
+                             scaling=None, # no preprocessing with ComboDataLoader
                              exclude_cells=args.exclude_cells,
                              exclude_drugs=args.exclude_drugs,
                              use_combo_score=args.use_combo_score,
                              cv_partition=args.cv_partition, cv=args.cv)
 
     x_train_list, y_train, x_val_list, y_val, df_train, df_val = loader.load_data()
+    # df: dataframe, pandas
 
     y_train = np.expand_dims(y_train, axis=1)
     y_val = np.expand_dims(y_val, axis=1)
+    cursor_train = int(len(y_train) * prop)
+    cursor_valid = int(len(y_val) * prop)
     print('x_train shapes:')
     for i, x in enumerate(x_train_list):
-        print('shape ', i, ' -> ', x.shape)
+        x_train_list[i] = x[:cursor_train]
+        print('i=', i, ' : shape source -> ', x.shape, ' | shape new -> ', x_train_list[i].shape)
+    y_train = y_train[:cursor_train]
     print('y_train shape:', y_train.shape)
 
     print('x_val shapes:')
     for i, x in enumerate(x_val_list):
-        print('shape ', i, ' -> ', x.shape)
+        x_val_list[i] = x[:cursor_valid]
+        print('i=', i, ' : shape source -> ', x.shape, ' | shape new -> ', x_val_list[i].shape)
+    y_val = y_val[:cursor_valid]
     print('y_val shape:', y_val.shape)
+
     return (x_train_list, y_train), (x_val_list, y_val)
 
 

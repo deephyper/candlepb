@@ -15,9 +15,9 @@ Problem.add_dim('load_data', {
 })
 
 # OPTIONAL : You define a preprocessing function which will be applied on your data before training generated models. This preprocessing function use sklearn preprocessors api.
-Problem.add_dim('preprocessing', {
-    'func': minmaxstdscaler
-})
+# Problem.add_dim('preprocessing', {
+#     'func': minmaxstdscaler
+# })
 
 # You define the create structure function. This function will return an object following the Structure interface. You can also have kwargs arguments such as 'num_cells' for this function.
 Problem.add_dim('create_structure', {
