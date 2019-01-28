@@ -589,49 +589,86 @@ def load_data_combo():
     params = initialize_parameters()
     return run(params)
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+
 def load_data_deephyper(prop=0.1):
-    params = initialize_parameters()
-    args = Struct(**params)
-    set_seed(args.rng_seed)
-    ext = extension_from_parameters(args)
-    verify_path(args.save)
-    prefix = args.save + ext
-    logfile = args.logfile if args.logfile else prefix+'.log'
-    set_up_logger(logfile, args.verbose)
-    logger.info('Params: {}'.format(params))
+    fnames = [f'x_train-{prop}', f'y_train-{prop}', f'x_valid-{prop}', f'y_valid-{prop}']
+    dir_path = "{}/DATA".format(HERE)
+    format_path = dir_path + "/data_cached_{}.npy"
 
-    loader = ComboDataLoader(seed=args.rng_seed,
-                             val_split=args.validation_split,
-                             cell_features=args.cell_features,
-                             drug_features=args.drug_features,
-                             response_url=args.response_url,
-                             use_landmark_genes=args.use_landmark_genes,
-                             preprocess_rnaseq=args.preprocess_rnaseq,
-                             scaling=None, # no preprocessing with ComboDataLoader
-                             exclude_cells=args.exclude_cells,
-                             exclude_drugs=args.exclude_drugs,
-                             use_combo_score=args.use_combo_score,
-                             cv_partition=args.cv_partition, cv=args.cv)
+    if not os.path.exists(dir_path):
+        try:
+            os.makedirs(dir_path)
+        except:
+            pass
 
-    x_train_list, y_train, x_val_list, y_val, df_train, df_val = loader.load_data()
-    # df: dataframe, pandas
+    if not all(map(lambda n: os.path.exists(format_path.format(n)), fnames)):
 
-    y_train = np.expand_dims(y_train, axis=1)
-    y_val = np.expand_dims(y_val, axis=1)
-    cursor_train = int(len(y_train) * prop)
-    cursor_valid = int(len(y_val) * prop)
+        params = initialize_parameters()
+        args = Struct(**params)
+        set_seed(args.rng_seed)
+        ext = extension_from_parameters(args)
+        verify_path(args.save)
+        prefix = args.save + ext
+        logfile = args.logfile if args.logfile else prefix+'.log'
+        set_up_logger(logfile, args.verbose)
+        logger.info('Params: {}'.format(params))
+
+        loader = ComboDataLoader(seed=args.rng_seed,
+                                val_split=args.validation_split,
+                                cell_features=args.cell_features,
+                                drug_features=args.drug_features,
+                                response_url=args.response_url,
+                                use_landmark_genes=args.use_landmark_genes,
+                                preprocess_rnaseq=args.preprocess_rnaseq,
+                                scaling=None, # no preprocessing with ComboDataLoader
+                                exclude_cells=args.exclude_cells,
+                                exclude_drugs=args.exclude_drugs,
+                                use_combo_score=args.use_combo_score,
+                                cv_partition=args.cv_partition, cv=args.cv)
+
+        x_train_list, y_train, x_val_list, y_val, df_train, df_val = loader.load_data()
+
+        y_train = np.expand_dims(y_train, axis=1)
+        y_val = np.expand_dims(y_val, axis=1)
+        cursor_train = int(len(y_train) * prop)
+        cursor_valid = int(len(y_val) * prop)
+
+        for i, x in enumerate(x_train_list):
+            x_train_list[i] = x[:cursor_train]
+        y_train = y_train[:cursor_train]
+
+        for i, x in enumerate(x_val_list):
+            x_val_list[i] = x[:cursor_valid]
+        y_val = y_val[:cursor_valid]
+
+        fdata = [x_train_list, y_train, x_val_list, y_val]
+
+        for i in range(len(fnames)):
+            with open(format_path.format(fnames[i]), "wb") as f:
+                if type(fdata[i]) is list:
+                    fdata[i] = [e.tolist() for e in fdata[i]]
+                np.save(f, fdata[i])
+        # df: dataframe, pandas
+
+    fdata = []
+    for i in range(len(fnames)):
+        with open(format_path.format(fnames[i]), "rb") as f:
+            fdata.append(np.load(f))
+
+    x_train_list, y_train, x_val_list, y_val = fdata
+    x_train_list = [np.array(e) for e in x_train_list]
+    x_val_list = [np.array(e) for e in x_val_list]
+
+
     print('x_train shapes:')
     for i, x in enumerate(x_train_list):
-        x_train_list[i] = x[:cursor_train]
-        print('i=', i, ' : shape source -> ', x.shape, ' | shape new -> ', x_train_list[i].shape)
-    y_train = y_train[:cursor_train]
+        print('i=', i, ' : shape -> ', x.shape)
     print('y_train shape:', y_train.shape)
 
     print('x_val shapes:')
     for i, x in enumerate(x_val_list):
-        x_val_list[i] = x[:cursor_valid]
-        print('i=', i, ' : shape source -> ', x.shape, ' | shape new -> ', x_val_list[i].shape)
-    y_val = y_val[:cursor_valid]
+        print('i=', i, ' : shape -> ', x.shape)
     print('y_val shape:', y_val.shape)
 
     return (x_train_list, y_train), (x_val_list, y_val)
