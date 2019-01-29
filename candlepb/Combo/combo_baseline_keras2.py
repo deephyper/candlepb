@@ -669,7 +669,7 @@ def load_data_deephyper(prop=0.1):
             l = list()
             for fname in fls:
                 if fnames[i] in fname:
-                    with open(fname, "rb") as f:
+                    with open(dir_path+'/'+fname, "rb") as f:
                         l.append(np.load(f))
             if "val" in fnames[i]:
                 x_val_list = l
