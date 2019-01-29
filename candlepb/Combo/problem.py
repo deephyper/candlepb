@@ -1,5 +1,5 @@
 from deephyper.benchmark import Problem
-from candlepb.Combo.combo_baseline_keras2 import load_data_deephyper
+from candlepb.Combo.combo_baseline_keras2 import load_data_deephyper_gen
 from deephyper.search.nas.model.baseline.anl_conv_mlp_1 import create_structure
 from deephyper.search.nas.model.preprocessing import minmaxstdscaler
 
@@ -11,7 +11,7 @@ Problem.add_dim('regression', True)
 
 # You define how to load your data by giving a 'load_data' function. This function will return your data set following this interface: (train_X, train_y), (valid_X, valid_y). You can also add a 'kwargs' key with arguments for the load_data function.
 Problem.add_dim('load_data', {
-    'func': load_data_deephyper,
+    'func': load_data_deephyper_gen,
 })
 
 # OPTIONAL : You define a preprocessing function which will be applied on your data before training generated models. This preprocessing function use sklearn preprocessors api.

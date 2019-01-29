@@ -14,6 +14,8 @@ import pandas as pd
 
 from itertools import cycle, islice
 
+import tensorflow as tf
+from pprint import pformat
 import keras
 from keras import backend as K
 from keras import optimizers
@@ -621,7 +623,7 @@ def load_data_deephyper(prop=0.1):
                                 response_url=args.response_url,
                                 use_landmark_genes=args.use_landmark_genes,
                                 preprocess_rnaseq=args.preprocess_rnaseq,
-                                scaling=None, # no preprocessing with ComboDataLoader
+                                scaling='std', # no preprocessing with ComboDataLoader
                                 exclude_cells=args.exclude_cells,
                                 exclude_drugs=args.exclude_drugs,
                                 use_combo_score=args.use_combo_score,
@@ -694,8 +696,45 @@ def load_data_deephyper(prop=0.1):
 
     return (x_train_list, y_train), (x_val_list, y_val)
 
+def load_data_deephyper_gen(prop=0.1):
+    (x_train_list, y_train), (x_val_list, y_val) = load_data_deephyper(prop=prop)
+
+    def train_gen():
+        for x0, x1, x2, y in zip(*x_train_list, y_train):
+            yield ({
+                "input_0": x0,
+                "input_1": x1,
+                "input_2": x2
+                }, y)
+
+    def valid_gen():
+        for x0, x1, x2, y in zip(*x_val_list, y_val):
+            yield ({
+                "input_0": x0,
+                "input_1": x1,
+                "input_2": x2
+                }, y)
+
+    res = {
+        "train_gen": train_gen,
+        "train_size": len(y_train),
+        "valid_gen": valid_gen,
+        "valid_size": len(y_val),
+        "types": ({
+            "input_0": tf.float32,
+            "input_1": tf.float32,
+            "input_2": tf.float32
+            }, tf.float32),
+        "shapes": ({
+            "input_0": tuple(np.shape(x_train_list[0])[1:]),
+            "input_1": tuple(np.shape(x_train_list[1])[1:]),
+            "input_2": tuple(np.shape(x_train_list[2])[1:])
+            }, tuple(np.shape(y_train)[1:]))
+    }
+    print(f'load_data:\n', pformat(res))
+    return res
 
 if __name__ == '__main__':
-    res = load_data_deephyper()
+    res = load_data_deephyper_gen()
 
 
