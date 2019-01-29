@@ -602,8 +602,8 @@ def load_data_deephyper(prop=0.1):
         except:
             pass
 
-    if not all(map(lambda n: os.path.exists(format_path.format(n)), fnames)):
-
+    if not os.path.exists(format_path.format(fnames[1])):
+        print('-- IF --')
         params = initialize_parameters()
         args = Struct(**params)
         set_seed(args.rng_seed)
@@ -639,27 +639,48 @@ def load_data_deephyper(prop=0.1):
         y_train = y_train[:cursor_train]
 
         for i, x in enumerate(x_val_list):
-            x_val_list[i] = x[:cursor_valid]
+            x_val_list[i] = x[:cursor_valid, :]
         y_val = y_val[:cursor_valid]
 
         fdata = [x_train_list, y_train, x_val_list, y_val]
 
         for i in range(len(fnames)):
-            with open(format_path.format(fnames[i]), "wb") as f:
-                if type(fdata[i]) is list:
-                    fdata[i] = [e.tolist() for e in fdata[i]]
-                np.save(f, fdata[i])
+            if "x" in fnames[i]:
+                for j in range(len(fdata[i])):
+                    fname = fnames[i]+f"-p{j}"
+                    with open(format_path.format(fname), "wb") as f:
+                        np.save(f, fdata[i][j])
+            else:
+                fname = fnames[i]
+                with open(format_path.format(fname), "wb") as f:
+                    np.save(f, fdata[i])
         # df: dataframe, pandas
 
+    print('-- reading .npy files')
+    fls = os.listdir(dir_path)
+    fls.sort()
     fdata = []
+    x_train_list = None
+    x_val_list = None
+    y_train = None
+    y_val = None
     for i in range(len(fnames)):
-        with open(format_path.format(fnames[i]), "rb") as f:
-            fdata.append(np.load(f))
-
-    x_train_list, y_train, x_val_list, y_val = fdata
-    x_train_list = [np.array(e) for e in x_train_list]
-    x_val_list = [np.array(e) for e in x_val_list]
-
+        if "x" in fnames[i]:
+            l = list()
+            for fname in fls:
+                if fnames[i] in fname:
+                    with open(fname, "rb") as f:
+                        l.append(np.load(f))
+            if "val" in fnames[i]:
+                x_val_list = l
+            else:
+                x_train_list = l
+        else:
+            with open(format_path.format(fnames[i]), "rb") as f:
+                if "val" in fnames[i]:
+                    y_val = np.load(f)
+                else:
+                    y_train = np.load(f)
 
     print('x_train shapes:')
     for i, x in enumerate(x_train_list):
