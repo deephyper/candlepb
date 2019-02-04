@@ -17,10 +17,10 @@ from keras.callbacks import ModelCheckpoint, CSVLogger, ReduceLROnPlateau
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, MaxAbsScaler
 
-#TIMEOUT=3600 # in sec; set this to -1 for no timeout 
+#TIMEOUT=3600 # in sec; set this to -1 for no timeout
 
-import nt3 as bmk
-import candle_keras as candle
+import candlepb.NT3.nt3 as bmk
+import candlepb.common.candle_keras as candle
 
 def initialize_parameters():
 
@@ -89,11 +89,12 @@ def load_data1(gParameters):
 
     print('Y_train shape:', Y_train.shape)
     print('Y_test shape:', Y_test.shape)
+    return (X_train, Y_train), (X_test, Y_test)
 
 def load_data():
 
     gParameters = initialize_parameters()
-    load_data1(gParameters)
+    return load_data1(gParameters)
 
 if __name__ == '__main__':
     load_data()

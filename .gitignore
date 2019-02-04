@@ -106,3 +106,6 @@ venv.bak/
 
 Data/
 .DS_Store
+Output/
+save/
+.vscode/

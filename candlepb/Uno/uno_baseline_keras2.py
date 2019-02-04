@@ -29,11 +29,11 @@ import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 
-import uno as benchmark
-import candle_keras as candle
+import candlepb.Uno.uno as benchmark
+import candlepb.common.candle_keras as candle
 
-import uno_data
-from uno_data import CombinedDataLoader, CombinedDataGenerator
+import candlepb.Uno.uno_data as uno_data
+from candlepb.Uno.uno_data import CombinedDataLoader, CombinedDataGenerator
 
 
 logger = logging.getLogger(__name__)

@@ -600,8 +600,7 @@ class CombinedDataLoader(object):
             pickle.dump(self, f, pickle.HIGHEST_PROTOCOL)
         logger.info('Saved data to cache: %s', fname)
 
-    def partition_data(self, partition_by=None, cv_folds=1, train_split=0.7, val_split=0.2,
-                       cell_types=None, by_cell=None, by_drug=None):
+    def partition_data(self, partition_by=None, cv_folds=1, train_split=0.7, val_split=0.2, cell_types=None, by_cell=None, by_drug=None):
 
         seed = self.seed
         train_sep_sources = self.train_sep_sources
