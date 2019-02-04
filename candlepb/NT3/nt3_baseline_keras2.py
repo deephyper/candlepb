@@ -91,10 +91,70 @@ def load_data1(gParameters):
     print('Y_test shape:', Y_test.shape)
     return (X_train, Y_train), (X_test, Y_test)
 
-def load_data():
+HERE = os.path.dirname(os.path.abspath(__file__))
 
-    gParameters = initialize_parameters()
-    return load_data1(gParameters)
+def load_data_deephyper(prop=0.1):
+    fnames = [f'x_train-{prop}', f'y_train-{prop}', f'x_valid-{prop}', f'y_valid-{prop}']
+    dir_path = "{}/DATA".format(HERE)
+    format_path = dir_path + "/data_cached_{}.npy"
+
+    if not os.path.exists(dir_path):
+        try:
+            os.makedirs(dir_path)
+        except:
+            pass
+
+    if not os.path.exists(format_path.format(fnames[1])):
+        print('-- IF --')
+        gParameters = initialize_parameters()
+        (x_train, y_train), (x_valid, y_valid) = load_data1(gParameters)
+
+        cursor_train = int(len(y_train) * prop)
+        cursor_valid = int(len(y_valid) * prop)
+
+        #!! remove single dimensions for concatenation along axis 1 in preprocessing
+        x_train = np.squeeze(x_train[:cursor_train])
+        y_train = y_train[:cursor_train]
+
+        x_valid = np.squeeze(x_valid[:cursor_valid])
+        y_valid = y_valid[:cursor_valid]
+
+        fdata = [x_train, y_train, x_valid, y_valid]
+
+        for i in range(len(fnames)):
+            fname = fnames[i]
+            with open(format_path.format(fname), "wb") as f:
+                np.save(f, fdata[i])
+        # df: dataframe, pandas
+
+    print('-- reading .npy files')
+    fls = os.listdir(dir_path)
+    fls.sort()
+    fdata = []
+    x_train = None
+    x_valid = None
+    y_train = None
+    y_valid = None
+    for i in range(len(fnames)):
+        with open(format_path.format(fnames[i]), "rb") as f:
+            if "val" in fnames[i]:
+                if "x" in fnames[i]:
+                    x_valid = np.load(f)
+                else:
+                    y_valid = np.load(f)
+            else:
+                if "x" in fnames[i]:
+                    x_train = np.load(f)
+                else:
+                    y_train = np.load(f)
+
+    print('x_train shape:', x_train.shape)
+    print('y_train shape:', y_train.shape)
+
+    print('x_valid shapes:', x_valid.shape)
+    print('y_valid shape:', y_valid.shape)
+
+    return (x_train, y_train), (x_valid, y_valid)
 
 if __name__ == '__main__':
-    load_data()
+    load_data_deephyper()
