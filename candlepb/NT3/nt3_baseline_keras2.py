@@ -157,4 +157,4 @@ def load_data_deephyper(prop=0.1):
     return (x_train, y_train), (x_valid, y_valid)
 
 if __name__ == '__main__':
-    load_data_deephyper()
+    load_data_deephyper(prop=1.)
