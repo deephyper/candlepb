@@ -15,8 +15,8 @@ from deephyper.search.nas.model.trainer.regressor_train_valid import \
 from deephyper.search.nas.model.trainer.classifier_train_valid import \
     TrainerClassifierTrainValid
 
-PROP = 1.
-NUM_EPOCHS = 2
+PROP = 0.1
+NUM_EPOCHS = 1
 ARCH_SEQ = [
             0.0,
             0.0,
@@ -180,6 +180,15 @@ def main(config):
     print(f'Start training... num_epochs={num_epochs}')
     model.load_weights("model_weights.h5")
     trainer.train(num_epochs=num_epochs)
+
+    if config['regression']:
+        y_orig, y_pred = trainer.predict('valid')
+        r_list = list()
+        for dim in range(np.shape(y_orig)[1]):
+            r, _ = stats.pearsonr(y_orig[:, dim], y_pred[:, dim])
+            r_list.append(r)
+        print('r_list: ', r_list)
+
 
     # serialize weights to HDF5
     model.save_weights("model_weights.h5")
