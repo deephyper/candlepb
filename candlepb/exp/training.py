@@ -9,14 +9,16 @@ from candlepb.Combo.problem_exp2 import Problem
 # from deephyper.benchmark.nas.mnist1D.problem import Problem
 
 from tensorflow.keras.utils import plot_model
+
+from deephyper.core.model_utils import number_parameters
 from deephyper.search import util
 from deephyper.search.nas.model.trainer.regressor_train_valid import \
     TrainerRegressorTrainValid
 from deephyper.search.nas.model.trainer.classifier_train_valid import \
     TrainerClassifierTrainValid
 
-PROP = 0.1
-NUM_EPOCHS = 1
+PROP = 1.
+NUM_EPOCHS = 0
 ARCH_SEQ = [
             0.0,
             0.0,
@@ -149,7 +151,7 @@ def main(config):
             try:
                 plot_model(model, to_file='model.png', show_shapes=True)
             except:
-                pass
+                print('can\t create model.png file...')
             try:
                 model.load_weights("model_weights.h5")
                 print('model weights loaded!')
@@ -168,7 +170,7 @@ def main(config):
             try:
                 plot_model(model, to_file='model.png', show_shapes=True)
             except:
-                pass
+                print('can\t create model.png file...')
             try:
                 model.load_weights("model_weights.h5")
                 print('model weights loaded!')
@@ -178,8 +180,14 @@ def main(config):
 
     print('Trainer is ready.')
     print(f'Start training... num_epochs={num_epochs}')
-    model.load_weights("model_weights.h5")
+
+    nparams = number_parameters()
+    print('model number of parameters: ', nparams)
     trainer.train(num_epochs=num_epochs)
+
+    # serialize weights to HDF5
+    model.save_weights("model_weights.h5")
+    print("Saved model weight to disk: model_weights.h5")
 
     if config['regression']:
         y_orig, y_pred = trainer.predict('valid')
@@ -190,9 +198,6 @@ def main(config):
         print('r_list: ', r_list)
 
 
-    # serialize weights to HDF5
-    model.save_weights("model_weights.h5")
-    print("Saved model weight to disk: model_weights.h5")
 
 if __name__ == '__main__':
     config = Problem.space
