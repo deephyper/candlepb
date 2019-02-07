@@ -1,19 +1,71 @@
 import numpy as np
 import traceback
 from scipy import stats
+from inspect import signature
 
-# from candlepb.Combo.problem import Problem
-from candlepb.NT3.problem import Problem
+from candlepb.Combo.problem_exp2 import Problem
+# from candlepb.NT3.problem_exp1 import Problem
+# from candlepb.NT3.problem_exp2 import Problem
+# from deephyper.benchmark.nas.mnist1D.problem import Problem
 
+from tensorflow.keras.utils import plot_model
+
+from deephyper.core.model_utils import number_parameters
 from deephyper.search import util
 from deephyper.search.nas.model.trainer.regressor_train_valid import \
     TrainerRegressorTrainValid
 from deephyper.search.nas.model.trainer.classifier_train_valid import \
     TrainerClassifierTrainValid
 
-PROP = 0.1
+PROP = 1.
 NUM_EPOCHS = 0
-ARCH_SEQ = [0.2, 0.0, 0.0, 0.2, 0.8, 0.0, 0.8, 0.6, 0.6, 0.8, 0.8, 0.2, 0.4, 0.6, 0.8, 0.6, 0.8, 0.8, 0.6, 0.8, 0.2, 0.8, 0.8, 0.4, 0.6, 0.8, 0.2, 0.2, 0.4, 0.8, 0.6, 0.0, 0.0, 0.6, 0.6, 0.0, 0.2, 0.8, 0.2, 0.4, 0.6, 0.4, 0.6, 0.6, 0.8]
+ARCH_SEQ = [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.4444444444444444,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.6666666666666666,
+            0.0,
+            0.0,
+            0.7777777777777778,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ]
 
 def main(config):
 
@@ -24,7 +76,21 @@ def main(config):
     print('[PARAM] Loading data')
     # Loading data
     kwargs = config['load_data'].get('kwargs')
-    data = load_data(prop=PROP) if kwargs is None else load_data(**kwargs)
+    sig_load_data = signature(load_data)
+    if len(sig_load_data.parameters) == 0:
+        data = load_data()
+    else:
+        if 'prop' in sig_load_data.parameters:
+            if kwargs is None:
+                data = load_data(prop=PROP)
+            else:
+                kwargs['prop'] = PROP
+                data = load_data(**kwargs)
+        else:
+            if kwargs is None:
+                data = load_data()
+            else:
+                data = load_data(**kwargs)
     print('[PARAM] Data loaded')
 
     # Set data shape
@@ -57,6 +123,11 @@ def main(config):
     structure = config['create_structure']['func'](input_shape, output_shape, **config['create_structure']['kwargs'])
     arch_seq = ARCH_SEQ
     structure.set_ops(arch_seq)
+    try:
+        structure.draw_graphviz('graph_full.dot')
+    except:
+        pass
+
     print('Model operations set.')
 
     if config.get('preprocessing') is not None:
@@ -77,6 +148,15 @@ def main(config):
             print('Error: Model creation failed...')
             print(traceback.format_exc())
         if model_created:
+            try:
+                plot_model(model, to_file='model.png', show_shapes=True)
+            except:
+                print('can\t create model.png file...')
+            try:
+                model.load_weights("model_weights.h5")
+                print('model weights loaded!')
+            except:
+                print('failed to load model weights...')
             trainer = TrainerRegressorTrainValid(config=config, model=model)
     else:
         try:
@@ -87,15 +167,37 @@ def main(config):
             print('Error: Model creation failed...')
             print(traceback.format_exc())
         if model_created:
+            try:
+                plot_model(model, to_file='model.png', show_shapes=True)
+            except:
+                print('can\t create model.png file...')
+            try:
+                model.load_weights("model_weights.h5")
+                print('model weights loaded!')
+            except:
+                print('failed to load model weights...')
             trainer = TrainerClassifierTrainValid(config=config, model=model)
 
     print('Trainer is ready.')
     print(f'Start training... num_epochs={num_epochs}')
+
+    nparams = number_parameters()
+    print('model number of parameters: ', nparams)
     trainer.train(num_epochs=num_epochs)
 
     # serialize weights to HDF5
     model.save_weights("model_weights.h5")
     print("Saved model weight to disk: model_weights.h5")
+
+    if config['regression']:
+        y_orig, y_pred = trainer.predict('valid')
+        r_list = list()
+        for dim in range(np.shape(y_orig)[1]):
+            r, _ = stats.pearsonr(y_orig[:, dim], y_pred[:, dim])
+            r_list.append(r)
+        print('r_list: ', r_list)
+
+
 
 if __name__ == '__main__':
     config = Problem.space
