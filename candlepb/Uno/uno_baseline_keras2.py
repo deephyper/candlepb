@@ -323,29 +323,120 @@ def load_data1(params):
     val_split = args.validation_split
     train_split = 1 - val_split
 
-    if args.export_data:
-        fname = args.export_data
-        loader.partition_data(cv_folds=args.cv, train_split=train_split, val_split=val_split,
-                              cell_types=args.cell_types, by_cell=args.by_cell, by_drug=args.by_drug)
-        train_gen = CombinedDataGenerator(loader, batch_size=args.batch_size, shuffle=args.shuffle)
-        val_gen = CombinedDataGenerator(loader, partition='val', batch_size=args.batch_size, shuffle=args.shuffle)
-        x_train_list, y_train = train_gen.get_slice(size=train_gen.size, dataframe=True, single=args.single)
-        x_val_list, y_val = val_gen.get_slice(size=val_gen.size, dataframe=True, single=args.single)
-        df_train = pd.concat([y_train] + x_train_list, axis=1)
-        df_val = pd.concat([y_val] + x_val_list, axis=1)
-        df = pd.concat([df_train, df_val]).reset_index(drop=True)
-        if args.growth_bins > 1:
-            df = uno_data.discretize(df, 'Growth', bins=args.growth_bins)
-        df.to_csv(fname, sep='\t', index=False, float_format="%.3g")
-        return
+    loader.partition_data(cv_folds=args.cv, train_split=train_split, val_split=val_split, cell_types=args.cell_types, by_cell=args.by_cell, by_drug=args.by_drug)
+    print('-- partition data ok')
+    train_gen = CombinedDataGenerator(loader, batch_size=args.batch_size, shuffle=args.shuffle)
+    val_gen = CombinedDataGenerator(loader, partition='val', batch_size=args.batch_size, shuffle=args.shuffle)
+    print('-- generator ok')
+    print('-- train_gen.size: ', train_gen.size)
+    print('-- val_gen.size: ', val_gen.size)
+    print('-- training')
+    # x_list, y = train_gen.flow()
+    e = train_gen.flow().__next__()
+    print('type e: ', type(e), ':: len e: ', len(e))
+    x_list, y = e
+    for i, x in enumerate(x_list):
+        print(f'-- i={i}, x.shape: {np.shape(x)}')
+    print('-- y.shape: {np.shape(y)}')
 
-    loader.partition_data(cv_folds=args.cv, train_split=train_split, val_split=val_split,
-                          cell_types=args.cell_types, by_cell=args.by_cell, by_drug=args.by_drug)
+    print('-- validation')
+    x_list, y = val_gen.flow()
+    for i, x in enumerate(x_list):
+        print(f'-- i={i}, x.shape: {np.shape(x)}')
+    print('-- y.shape: {np.shape(y)}')
+    # x_train_list, y_train = train_gen.get_slice(size=train_gen.size, dataframe=True, single=args.single)
+    # print('-- train slice ok')
+    # x_val_list, y_val = val_gen.get_slice(size=val_gen.size, dataframe=True, single=args.single)
+    # print('-- validation slice ok')
+
+    # return (x_train_list, y_train), (x_val_list, y_val)
 
 
-def load_data():
-    gParameters = initialize_parameters()
-    load_data1(gParameters)
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+def load_data_deephyper(prop=0.1):
+
+    fnames = [f'x_train-{prop}', f'y_train-{prop}', f'x_valid-{prop}', f'y_valid-{prop}']
+    dir_path = "{}/DATA".format(HERE)
+    format_path = dir_path + "/data_cached_{}.npy"
+
+    if not os.path.exists(dir_path):
+        try:
+            os.makedirs(dir_path)
+        except:
+            pass
+
+    if not os.path.exists(format_path.format(fnames[1])):
+        print('-- creating cached files --')
+        gParameters = initialize_parameters()
+        (x_train_list, y_train), (x_val_list, y_val) = load_data1(gParameters)
+        print('-- load_data1 returned --')
+
+        y_train = np.expand_dims(y_train, axis=1)
+        y_val = np.expand_dims(y_val, axis=1)
+        cursor_train = int(len(y_train) * prop)
+        cursor_valid = int(len(y_val) * prop)
+
+        for i, x in enumerate(x_train_list):
+            x_train_list[i] = x[:cursor_train]
+        y_train = y_train[:cursor_train]
+
+        for i, x in enumerate(x_val_list):
+            x_val_list[i] = x[:cursor_valid, :]
+        y_val = y_val[:cursor_valid]
+
+        fdata = [x_train_list, y_train, x_val_list, y_val]
+
+        for i in range(len(fnames)):
+            if "x" in fnames[i]:
+                for j in range(len(fdata[i])):
+                    fname = fnames[i]+f"-p{j}"
+                    with open(format_path.format(fname), "wb") as f:
+                        np.save(f, fdata[i][j])
+            else:
+                fname = fnames[i]
+                with open(format_path.format(fname), "wb") as f:
+                    np.save(f, fdata[i])
+        # df: dataframe, pandas
+
+    print('-- reading .npy files')
+    fls = os.listdir(dir_path)
+    fls.sort()
+    fdata = []
+    x_train_list = None
+    x_val_list = None
+    y_train = None
+    y_val = None
+    for i in range(len(fnames)):
+        if "x" in fnames[i]:
+            l = list()
+            for fname in fls:
+                if fnames[i] in fname:
+                    with open(dir_path+'/'+fname, "rb") as f:
+                        l.append(np.load(f))
+            if "val" in fnames[i]:
+                x_val_list = l
+            else:
+                x_train_list = l
+        else:
+            with open(format_path.format(fnames[i]), "rb") as f:
+                if "val" in fnames[i]:
+                    y_val = np.load(f)
+                else:
+                    y_train = np.load(f)
+
+    print('x_train shapes:')
+    for i, x in enumerate(x_train_list):
+        print('i=', i, ' : shape -> ', x.shape)
+    print('y_train shape:', y_train.shape)
+
+    print('x_val shapes:')
+    for i, x in enumerate(x_val_list):
+        print('i=', i, ' : shape -> ', x.shape)
+    print('y_val shape:', y_val.shape)
+
+    return (x_train_list, y_train), (x_val_list, y_val)
 
 if __name__ == '__main__':
-    load_data()
+    gParameters = initialize_parameters()
+    load_data1(gParameters)
