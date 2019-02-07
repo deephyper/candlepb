@@ -150,6 +150,11 @@ def main(config):
                 plot_model(model, to_file='model.png', show_shapes=True)
             except:
                 pass
+            try:
+                model.load_weights("model_weights.h5")
+                print('model weights loaded!')
+            except:
+                print('failed to load model weights...')
             trainer = TrainerRegressorTrainValid(config=config, model=model)
     else:
         try:
@@ -164,10 +169,16 @@ def main(config):
                 plot_model(model, to_file='model.png', show_shapes=True)
             except:
                 pass
+            try:
+                model.load_weights("model_weights.h5")
+                print('model weights loaded!')
+            except:
+                print('failed to load model weights...')
             trainer = TrainerClassifierTrainValid(config=config, model=model)
 
     print('Trainer is ready.')
     print(f'Start training... num_epochs={num_epochs}')
+    model.load_weights("model_weights.h5")
     trainer.train(num_epochs=num_epochs)
 
     # serialize weights to HDF5
