@@ -1,8 +1,9 @@
 import numpy as np
+import traceback
 from scipy import stats
 
-from candlepb.Combo.problem import Problem
-# from candlepb.NT3.problem import Problem
+# from candlepb.Combo.problem import Problem
+from candlepb.NT3.problem import Problem
 
 from deephyper.search import util
 from deephyper.search.nas.model.trainer.regressor_train_valid import \
@@ -11,54 +12,8 @@ from deephyper.search.nas.model.trainer.classifier_train_valid import \
     TrainerClassifierTrainValid
 
 PROP = 0.1
-NUM_EPOCHS = 10
-ARCH_SEQ = [
-            0.0,
-            0.4,
-            0.8,
-            0.8,
-            0.4,
-            0.2,
-            0.4,
-            0.8,
-            0.4,
-            0.8,
-            0.0,
-            0.4,
-            0.8,
-            0.6,
-            0.0,
-            0.4,
-            0.6,
-            0.4,
-            0.6,
-            0.6,
-            0.6,
-            0.4,
-            0.6,
-            0.8,
-            0.0,
-            0.2,
-            0.6,
-            0.4,
-            0.4,
-            0.0,
-            0.4,
-            0.6,
-            0.8,
-            0.4,
-            0.2,
-            0.6,
-            0.0,
-            0.4,
-            0.2,
-            0.4,
-            0.8,
-            0.4,
-            0.2,
-            0.6,
-            0.0
-        ]
+NUM_EPOCHS = 0
+ARCH_SEQ = [0.2, 0.0, 0.0, 0.2, 0.8, 0.0, 0.8, 0.6, 0.6, 0.8, 0.8, 0.2, 0.4, 0.6, 0.8, 0.6, 0.8, 0.8, 0.6, 0.8, 0.2, 0.8, 0.8, 0.4, 0.6, 0.8, 0.2, 0.2, 0.4, 0.8, 0.6, 0.0, 0.0, 0.6, 0.6, 0.0, 0.2, 0.8, 0.2, 0.4, 0.6, 0.4, 0.6, 0.6, 0.8]
 
 def main(config):
 
@@ -119,14 +74,18 @@ def main(config):
             model_created = True
         except:
             model_created = False
+            print('Error: Model creation failed...')
+            print(traceback.format_exc())
         if model_created:
             trainer = TrainerRegressorTrainValid(config=config, model=model)
     else:
         try:
             model = structure.create_model(activation='softmax')
             model_created = True
-        except:
+        except Exception as err:
             model_created = False
+            print('Error: Model creation failed...')
+            print(traceback.format_exc())
         if model_created:
             trainer = TrainerClassifierTrainValid(config=config, model=model)
 
