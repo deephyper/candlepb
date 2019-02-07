@@ -110,3 +110,5 @@ Output/
 save/
 .vscode/
 *.h5
+*.log
+*.npy

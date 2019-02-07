@@ -10,7 +10,7 @@ from deephyper.search.nas.model.trainer.regressor_train_valid import \
 from deephyper.search.nas.model.trainer.classifier_train_valid import \
     TrainerClassifierTrainValid
 
-PROP = 0.1
+PROP = 1.
 NUM_EPOCHS = 10
 ARCH_SEQ = [
             0.0,
@@ -120,6 +120,11 @@ def main(config):
         except:
             model_created = False
         if model_created:
+            try:
+                model.load_weights("model_weights.h5")
+                print('model weights loaded!')
+            except:
+                print('failed to load model weights...')
             trainer = TrainerRegressorTrainValid(config=config, model=model)
     else:
         try:
@@ -128,6 +133,11 @@ def main(config):
         except:
             model_created = False
         if model_created:
+            try:
+                model.load_weights("model_weights.h5")
+                print('model weights loaded!')
+            except:
+                print('failed to load model weights...')
             trainer = TrainerClassifierTrainValid(config=config, model=model)
 
     print('Trainer is ready.')
