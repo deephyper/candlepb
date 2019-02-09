@@ -110,6 +110,7 @@ Output/
 save/
 .vscode/
 *.h5
+DATA/
 *.log
 *.npy
 *.png
