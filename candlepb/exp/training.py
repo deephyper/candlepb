@@ -3,6 +3,11 @@ import traceback
 from scipy import stats
 from inspect import signature
 
+try:
+    import seaborn as sns
+except:
+    print('can\t import seaborn...')
+
 from candlepb.Combo.problem_exp2 import Problem
 # from candlepb.NT3.problem_exp1 import Problem
 # from candlepb.NT3.problem_exp2 import Problem
@@ -146,17 +151,19 @@ def main(config):
         except:
             model_created = False
             print('Error: Model creation failed...')
-            print(traceback.format_exc())
+            print('INFO STACKTRACE: ', traceback.format_exc())
         if model_created:
             try:
                 plot_model(model, to_file='model.png', show_shapes=True)
-            except:
+            except Exception as err:
                 print('can\t create model.png file...')
+                print('INFO STACKTRACE: ', traceback.format_exc())
             try:
                 model.load_weights("model_weights.h5")
                 print('model weights loaded!')
-            except:
+            except Exception as err:
                 print('failed to load model weights...')
+                print('INFO STACKTRACE: ', traceback.format_exc())
             trainer = TrainerRegressorTrainValid(config=config, model=model)
     else:
         try:
@@ -165,17 +172,19 @@ def main(config):
         except Exception as err:
             model_created = False
             print('Error: Model creation failed...')
-            print(traceback.format_exc())
+            print('INFO STACKTRACE: ', traceback.format_exc())
         if model_created:
             try:
                 plot_model(model, to_file='model.png', show_shapes=True)
-            except:
+            except Exception as err:
                 print('can\t create model.png file...')
+                print('INFO STACKTRACE: ', traceback.format_exc())
             try:
                 model.load_weights("model_weights.h5")
                 print('model weights loaded!')
-            except:
+            except Exception as err:
                 print('failed to load model weights...')
+                print('INFO STACKTRACE: ', traceback.format_exc())
             trainer = TrainerClassifierTrainValid(config=config, model=model)
 
     print('Trainer is ready.')
@@ -183,11 +192,12 @@ def main(config):
 
     nparams = number_parameters()
     print('model number of parameters: ', nparams)
-    trainer.train(num_epochs=num_epochs)
+    if NUM_EPOCHS > 0:
+        trainer.train(num_epochs=num_epochs)
 
-    # serialize weights to HDF5
-    model.save_weights("model_weights.h5")
-    print("Saved model weight to disk: model_weights.h5")
+        # serialize weights to HDF5
+        model.save_weights("model_weights.h5")
+        print("Saved model weight to disk: model_weights.h5")
 
     if config['regression']:
         y_orig, y_pred = trainer.predict('valid')
