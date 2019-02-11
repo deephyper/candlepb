@@ -3,9 +3,15 @@ import traceback
 from scipy import stats
 from inspect import signature
 
-from candlepb.Combo.problem_exp2 import Problem
+#### COMBO ####
+# from candlepb.Combo.problem_exp1 import Problem
+# from candlepb.Combo.problem_exp2 import Problem
+from candlepb.Combo.problem_exp3 import Problem
+
+#### NT3 ####
 # from candlepb.NT3.problem_exp1 import Problem
 # from candlepb.NT3.problem_exp2 import Problem
+
 # from deephyper.benchmark.nas.mnist1D.problem import Problem
 
 from tensorflow.keras.utils import plot_model
@@ -17,54 +23,54 @@ from deephyper.search.nas.model.trainer.regressor_train_valid import \
 from deephyper.search.nas.model.trainer.classifier_train_valid import \
     TrainerClassifierTrainValid
 
-PROP = 1.
+PROP = 0.1
 NUM_EPOCHS = 0
 ARCH_SEQ = [
+            0.8,
+            0.1,
+            0.2,
+            0.4,
+            0.5,
+            0.0,
+            0.2,
+            0.1,
+            0.0,
+            0.1,
+            0.4,
             0.0,
             0.0,
+            0.8,
             0.0,
+            0.8,
+            0.9,
+            0.2,
+            0.2,
+            0.2,
+            0.3,
+            0.6,
+            0.4,
+            0.7,
+            0.2,
+            0.6,
+            0.6,
+            0.4,
+            0.1,
+            0.4,
+            0.4,
+            0.5,
+            0.9,
+            0.6,
+            0.1,
+            0.8,
+            0.9,
+            0.4,
+            0.3,
             0.0,
+            0.6,
+            0.4,
             0.0,
-            0.0,
-            0.4444444444444444,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.6666666666666666,
-            0.0,
-            0.0,
-            0.7777777777777778,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0
+            0.7,
+            0.4
         ]
 
 def main(config):

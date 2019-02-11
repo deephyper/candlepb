@@ -2,7 +2,10 @@ from setuptools import setup
 
 
 install_requires=[
-        'pandas'
+        'pandas',
+        'console-menu',
+        'numpy',
+        'matplotlib'
 ]
 
 setup(
