@@ -1,7 +1,5 @@
 import tensorflow as tf
 
-from deephyper.search.nas.model.baseline.util.struct import (create_seq_struct,
-                                                             create_struct_full_skipco)
 from deephyper.search.nas.model.space.block import Block
 from deephyper.search.nas.model.space.cell import Cell
 from deephyper.search.nas.model.space.node import Node
