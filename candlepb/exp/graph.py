@@ -39,9 +39,13 @@ def go_menu():
 
 ## Main
 def main():
-    path = sys.argv[1]
-    func = go_menu()
-    func(path=path)
+    try:
+        path = sys.argv[1]
+    except IndexError as err:
+        print('Please enter a path to a JSON file you want to use for ploting: e.g. data/exp1.json')
+    else:
+        func = go_menu()
+        func(path=path)
 
 ## Ploting ##
 # each plot function has to start with 'plot_'
