@@ -25,9 +25,9 @@ def create_cell_1(input_nodes):
 
         def add_mlp_ops_to(vnode):
             # n.add_op(Identity())
-            # n.add_op(Conv1D(filter_size=3, num_filters=16))
+            # vnode.add_op(Conv1D(filter_size=3, num_filters=16))
             # n.add_op(MaxPooling1D(pool_size=3, padding='same'))
-            # n.add_op(Dense(100, tf.nn.relu))
+            vnode.add_op(Dense(100, tf.nn.relu))
             # n.add_op(Dense(100, tf.nn.tanh))
             # n.add_op(Conv1D(filter_size=5, num_filters=16))
             # n.add_op(MaxPooling1D(pool_size=5, padding='same'))
@@ -35,7 +35,7 @@ def create_cell_1(input_nodes):
             # n.add_op(Dense(500, tf.nn.tanh))
             # n.add_op(Conv1D(filter_size=10, num_filters=16))
             # n.add_op(MaxPooling1D(pool_size=10, padding='same'))
-            vnode.add_op(Dense(1000, tf.nn.relu))
+            # vnode.add_op(Dense(1000, tf.nn.relu))
             # vnode.add_op(Dense(1000, tf.nn.tanh))
 
         # first node of block
@@ -58,28 +58,11 @@ def create_cell_1(input_nodes):
 
         block.add_edge(n1, n2)
         block.add_edge(n2, n3)
-        return block, (n1, n2, n3)
+        return block
 
-    block1, _ = create_block(input_nodes[0])
-    block2, (vn1, vn2, vn3) = create_block(input_nodes[1])
-
-   # first node of block
-    m_vn1 = MirrorNode(node=vn1)
-    cell.graph.add_edge(input_nodes[2], m_vn1) # fixed input of current block
-
-    # second node of block
-    m_vn2 = MirrorNode(node=vn2)
-
-    # third node of the block
-    m_vn3 = MirrorNode(node=vn3)
-
-    block3 = Block()
-    block3.add_node(m_vn1)
-    block3.add_node(m_vn2)
-    block3.add_node(m_vn3)
-
-    block3.add_edge(m_vn1, m_vn2)
-    block3.add_edge(m_vn2, m_vn3)
+    block1 = create_block(input_nodes[0])
+    block2 = create_block(input_nodes[1])
+    block3 = create_block(input_nodes[2])
 
     cell.add_block(block1)
     cell.add_block(block2)
@@ -129,15 +112,15 @@ def create_cell_2(input_nodes):
         # second node of block
         n2 = create_mlp_node('N2')
 
-        # n3 = create_mlp_node('N3')
+        n3 = create_mlp_node('N3')
 
         block = Block()
         block.add_node(n1)
         block.add_node(n2)
-        # block.add_node(n3)
+        block.add_node(n3)
 
         block.add_edge(n1, n2)
-        # block.add_edge(n2, n3)
+        block.add_edge(n2, n3)
         return block
 
     block = create_block(input_nodes[0])
@@ -159,8 +142,8 @@ def create_structure(input_shape=(2,), output_shape=(1,), *args, **kwargs):
     func = lambda: create_cell_1(input_nodes)
     network.add_cell_f(func)
 
-    func = lambda x: create_cell_2(x)
-    network.add_cell_f(func, num=1)
+    # func = lambda x: create_cell_2(x)
+    # network.add_cell_f(func, num=1)
 
     return network
 

@@ -2,13 +2,14 @@ import numpy as np
 import traceback
 from scipy import stats
 from inspect import signature
+from tensorflow import keras
 
 try:
     import seaborn as sns
 except:
     print('can\t import seaborn...')
 
-from candlepb.Combo.problem_exp2 import Problem
+from candlepb.Combo.problem_exp5 import Problem
 # from candlepb.NT3.problem_exp1 import Problem
 # from candlepb.NT3.problem_exp2 import Problem
 
@@ -24,53 +25,53 @@ from deephyper.search.nas.model.trainer.classifier_train_valid import \
     TrainerClassifierTrainValid
 
 PROP = 0.1
-NUM_EPOCHS = 0
+NUM_EPOCHS = 1
 ARCH_SEQ = [
-            0.8,
             0.1,
-            0.2,
-            0.4,
-            0.5,
-            0.0,
-            0.2,
-            0.1,
-            0.0,
             0.1,
             0.4,
-            0.0,
-            0.0,
-            0.8,
-            0.0,
-            0.8,
+            0.1,
             0.9,
-            0.2,
-            0.2,
-            0.2,
+            0.9,
+            0.8,
+            0.1,
+            0.0,
+            0.0,
+            0.4,
+            0.1,
             0.3,
-            0.6,
             0.4,
-            0.7,
             0.2,
-            0.6,
-            0.6,
+            0.2,
+            0.2,
             0.4,
             0.1,
-            0.4,
-            0.4,
-            0.5,
-            0.9,
-            0.6,
-            0.1,
-            0.8,
-            0.9,
-            0.4,
             0.3,
             0.0,
-            0.6,
+            0.3,
+            0.8,
             0.4,
+            0.1,
+            0.6,
+            0.9,
             0.0,
+            0.6,
+            0.1,
+            0.0,
+            0.9,
+            0.1,
             0.7,
-            0.4
+            0.8,
+            0.0,
+            0.0,
+            0.2,
+            0.5,
+            0.5,
+            0.1,
+            0.0,
+            0.9,
+            0.6,
+            0.8
         ]
 
 def main(config):
@@ -126,7 +127,12 @@ def main(config):
     else:
         raise RuntimeError(f'Data returned by load_data function are of an unsupported type: {type(data)}')
 
-    structure = config['create_structure']['func'](input_shape, output_shape, **config['create_structure']['kwargs'])
+    cs_kwargs = config['create_structure'].get('kwargs')
+    if cs_kwargs is None:
+        structure = config['create_structure']['func'](input_shape, output_shape)
+    else:
+        structure = config['create_structure']['func'](input_shape, output_shape, **cs_kwargs)
+
     arch_seq = ARCH_SEQ
     structure.set_ops(arch_seq)
     try:
@@ -156,6 +162,7 @@ def main(config):
         if model_created:
             try:
                 plot_model(model, to_file='model.png', show_shapes=True)
+                model.summary()
             except Exception as err:
                 print('can\t create model.png file...')
                 print('INFO STACKTRACE: ', traceback.format_exc())
@@ -187,6 +194,9 @@ def main(config):
                 print('failed to load model weights...')
                 print('INFO STACKTRACE: ', traceback.format_exc())
             trainer = TrainerClassifierTrainValid(config=config, model=model)
+
+    tb_cb = keras.callbacks.TensorBoard(histogram_freq=0, batch_size=256, write_grads=True)
+    trainer.add_callback(tb_cb)
 
     print('Trainer is ready.')
     print(f'Start training... num_epochs={num_epochs}')
