@@ -4,11 +4,11 @@ from deephyper.search.nas.model.baseline.util.struct import (create_seq_struct,
                                                              create_struct_full_skipco)
 from deephyper.search.nas.model.space.block import Block
 from deephyper.search.nas.model.space.cell import Cell
-from deephyper.search.nas.model.space.node import Node
-from deephyper.search.nas.model.space.op.basic import Connect
+from deephyper.search.nas.model.space.node import VariableNode, ConstantNode
+from deephyper.search.nas.model.space.op.basic import Connect, AddByPadding
 from deephyper.search.nas.model.space.op.op1d import (Conv1D, Dense, Identity,
                                                       MaxPooling1D,
-                                                      dropout_ops, Add)
+                                                      dropout_ops)
 
 
 def create_cell_1(input_nodes):
@@ -24,12 +24,12 @@ def create_cell_1(input_nodes):
 
     def create_conv_block(input_nodes):
         # first node of block
-        n1 = Node('N1')
+        n1 = VariableNode('N1')
         for inpt in input_nodes:
             n1.add_op(Connect(cell.graph, inpt, n1))
 
         def create_conv_node(name):
-            n = Node(name)
+            n = VariableNode(name)
             n.add_op(Identity())
             n.add_op(Conv1D(filter_size=3, num_filters=16))
             n.add_op(MaxPooling1D(pool_size=3, padding='same'))
@@ -63,9 +63,8 @@ def create_cell_1(input_nodes):
     cell.add_block(block2)
     cell.add_block(block3)
 
-    addNode = Node('Add')
-    addNode.add_op(Add(cell.graph, addNode, cell.get_blocks_output()))
-    addNode.set_op(0)
+    addNode = ConstantNode(name='Cell_out')
+    addNode.set_op(AddByPadding(cell.graph, addNode, cell.get_blocks_output()))
     cell.set_outputs(node=addNode)
     return cell
 
