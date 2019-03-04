@@ -1,5 +1,5 @@
 from deephyper.benchmark import Problem
-from candlepb.Combo.combo_baseline_keras2 import load_data_deephyper_gen
+from candlepb.Combo.combo_baseline_keras2 import load_data_deephyper_gen, load_data_combo
 from candlepb.exp.candle_mlp_5 import create_structure
 # from deephyper.search.nas.model.preprocessing import minmaxstdscaler
 
@@ -26,7 +26,7 @@ Problem.add_dim('create_structure', {
 
 # You define the hyperparameters used to train your generated models during the search.
 Problem.add_dim('hyperparameters', {
-    'batch_size': 100,
+    'batch_size': 256,
     'learning_rate': 0.01,
     'optimizer': 'adam',
     'num_epochs': 1,

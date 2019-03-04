@@ -16,14 +16,14 @@ from itertools import cycle, islice
 
 import tensorflow as tf
 from pprint import pformat
-import keras
-from keras import backend as K
-from keras import optimizers
-from keras.models import Model
-from keras.layers import Input, Dense, Dropout
-from keras.callbacks import Callback, ModelCheckpoint, ReduceLROnPlateau, LearningRateScheduler, TensorBoard
-from keras.utils import get_custom_objects
-from keras.utils.vis_utils import plot_model
+# import keras
+# from tensorflow import keras
+from tensorflow.keras import backend as K
+from tensorflow.keras import optimizers
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, Dense, Dropout
+from tensorflow.keras.callbacks import Callback, ModelCheckpoint, ReduceLROnPlateau, LearningRateScheduler, TensorBoard
+from tensorflow.keras.utils import get_custom_objects
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 from sklearn.model_selection import KFold, StratifiedKFold, GroupKFold
 from scipy.stats.stats import pearsonr
@@ -587,9 +587,420 @@ def run(params):
     train_steps = int(loader.n_train / args.batch_size)
     val_steps = int(loader.n_val / args.batch_size)
 
+    model = build_model(loader, args, verbose=True)
+
+    print('Creating model PNG')
+    from keras.utils import plot_model
+    plot_model(model, 'model_global_combo.png', show_shapes=True)
+    print('Model PNG has been created successfuly!')
+
+    model.summary()
+    # plot_model(model, to_file=prefix+'.model.png', show_shapes=True)
+
+    if args.cp:
+        model_json = model.to_json()
+        with open(prefix+'.model.json', 'w') as f:
+            print(model_json, file=f)
+
+    def warmup_scheduler(epoch):
+        lr = args.learning_rate or base_lr * args.batch_size/100
+        if epoch <= 5:
+            K.set_value(model.optimizer.lr, (base_lr * (5-epoch) + lr * epoch) / 5)
+        logger.debug('Epoch {}: lr={}'.format(epoch, K.get_value(model.optimizer.lr)))
+        return K.get_value(model.optimizer.lr)
+
+    df_pred_list = []
+
+    cv_ext = ''
+    cv = args.cv if args.cv > 1 else 1
+
+    fold = 0
+    while fold < cv:
+        if args.cv > 1:
+            logger.info('Cross validation fold {}/{}:'.format(fold+1, cv))
+            cv_ext = '.cv{}'.format(fold+1)
+
+        model = build_model(loader, args)
+
+        optimizer = optimizers.deserialize({'class_name': args.optimizer, 'config': {}})
+        base_lr = args.base_lr or K.get_value(optimizer.lr)
+        if args.learning_rate:
+            K.set_value(optimizer.lr, args.learning_rate)
+
+        model.compile(loss=args.loss, optimizer=optimizer, metrics=[mae, r2])
+
+        # calculate trainable and non-trainable params
+        params.update(candle.compute_trainable_params(model))
+
+        candle_monitor = candle.CandleRemoteMonitor(params=params)
+        timeout_monitor = candle.TerminateOnTimeOut(params['timeout'])
+
+        reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=0.00001)
+        warmup_lr = LearningRateScheduler(warmup_scheduler)
+        checkpointer = ModelCheckpoint(prefix+cv_ext+'.weights.h5', save_best_only=True, save_weights_only=True)
+        tensorboard = TensorBoard(log_dir="tb/tb{}{}".format(ext, cv_ext))
+        history_logger = LoggingCallback(logger.debug)
+        model_recorder = ModelRecorder()
+
+        # callbacks = [history_logger, model_recorder]
+        callbacks = [candle_monitor, timeout_monitor, history_logger, model_recorder]
+        if args.reduce_lr:
+            callbacks.append(reduce_lr)
+        if args.warmup_lr:
+            callbacks.append(warmup_lr)
+        if args.cp:
+            callbacks.append(checkpointer)
+        if args.tb:
+            callbacks.append(tensorboard)
+
+        if args.gen:
+            history = model.fit_generator(train_gen, train_steps,
+                                          epochs=args.epochs,
+                                          callbacks=callbacks,
+                                          validation_data=val_gen, validation_steps=val_steps)
+            fold += 1
+        else:
+            if args.cv > 1:
+                x_train_list, y_train, x_val_list, y_val, df_train, df_val = loader.load_data_cv(fold)
+            else:
+                x_train_list, y_train, x_val_list, y_val, df_train, df_val = loader.load_data()
+
+            y_shuf = np.random.permutation(y_val)
+            log_evaluation(evaluate_prediction(y_val, y_shuf),
+                           description='Between random pairs in y_val:')
+            history = model.fit(x_train_list, y_train,
+                                batch_size=args.batch_size,
+                                shuffle=args.shuffle,
+                                epochs=args.epochs,
+                                callbacks=callbacks,
+                                validation_data=(x_val_list, y_val))
+
+        if args.cp:
+            model.load_weights(prefix+cv_ext+'.weights.h5')
+
+        if not args.gen:
+            y_val_pred = model.predict(x_val_list, batch_size=args.batch_size).flatten()
+            scores = evaluate_prediction(y_val, y_val_pred)
+            if args.cv > 1 and scores[args.loss] > args.max_val_loss:
+                logger.warn('Best val_loss {} is greater than {}; retrain the model...'.format(scores[args.loss], args.max_val_loss))
+                continue
+            else:
+                fold += 1
+            log_evaluation(scores)
+            df_val.is_copy = False
+            df_val['GROWTH_PRED'] = y_val_pred
+            df_val['GROWTH_ERROR'] = y_val_pred - y_val
+            df_pred_list.append(df_val)
+
+        if args.cp:
+            # model.save(prefix+'.model.h5')
+            model_recorder.best_model.save(prefix+'.model.h5')
+
+            # test reloadded model prediction
+            # new_model = keras.models.load_model(prefix+'.model.h5')
+            # new_model.load_weights(prefix+cv_ext+'.weights.h5')
+            # new_pred = new_model.predict(x_val_list, batch_size=args.batch_size).flatten()
+            # print('y_val:', y_val[:10])
+            # print('old_pred:', y_val_pred[:10])
+            # print('new_pred:', new_pred[:10])
+
+        plot_history(prefix, history, 'loss')
+        plot_history(prefix, history, 'r2')
+
+        if K.backend() == 'tensorflow':
+            K.clear_session()
+
+    if not args.gen:
+        pred_fname = prefix + '.predicted.growth.tsv'
+        if args.use_combo_score:
+            pred_fname = prefix + '.predicted.score.tsv'
+        df_pred = pd.concat(df_pred_list)
+        df_pred.to_csv(pred_fname, sep='\t', index=False, float_format='%.4g')
+
+    logger.handlers = []
+
+    return history
+
+from deephyper.search import util
+from tensorflow.keras.utils import plot_model
+
+def r2(y_true, y_pred):
+    SS_res =  K.sum(K.square(y_true - y_pred))
+    SS_tot = K.sum(K.square(y_true - K.mean(y_true)))
+    return (1 - SS_res/(SS_tot + K.epsilon()))
+
+def mae(y_true, y_pred):
+    return tf.keras.metrics.mean_absolute_error(y_true, y_pred)
+
+def evaluate_prediction(y_true, y_pred):
+    mse = mean_squared_error(y_true, y_pred)
+    mae = mean_absolute_error(y_true, y_pred)
+    r2 = r2_score(y_true, y_pred)
+    corr, _ = pearsonr(y_true, y_pred)
+    return {'mse': mse, 'mae': mae, 'r2': r2, 'corr': corr}
+
+def log_evaluation(metric_outputs, description='Comparing y_true and y_pred:'):
+    logger.info(description)
+    for metric, value in metric_outputs.items():
+        logger.info('  {}: {:.4f}'.format(metric, value))
+
+def run_model(config):
+
+    # config['create_structure']['func'] = util.load_attr_from(
+    #     config['create_structure']['func'])
+
+    input_shape =  [(942, ), (3820, ), (3820, )]
+    output_shape = (1, )
+
+    cs_kwargs = config['create_structure'].get('kwargs')
+    if cs_kwargs is None:
+        structure = config['create_structure']['func'](input_shape, output_shape)
+    else:
+        structure = config['create_structure']['func'](input_shape, output_shape, **cs_kwargs)
+
+    # arch_seq = config['arch_seq']
+    from random import random
+    arch_seq = [random() for i in range(structure.num_nodes)]
+
+    print(f'actions list: {arch_seq}')
+
+    structure.set_ops(arch_seq)
+    structure.draw_graphviz('graph_full.dot')
+
+    model = structure.create_model()
+    plot_model(model, to_file='model.png', show_shapes=True)
+    model.summary()
+
+
+    # CANDLE
+    params = initialize_parameters()
+    args = Struct(**params)
+    set_seed(args.rng_seed)
+    ext = extension_from_parameters(args)
+    verify_path(args.save)
+    prefix = args.save + ext
+    logfile = args.logfile if args.logfile else prefix+'.log'
+    set_up_logger(logfile, args.verbose)
+    logger.info('Params: {}'.format(params))
+
+    loader = ComboDataLoader(seed=args.rng_seed,
+                             val_split=args.validation_split,
+                             cell_features=args.cell_features,
+                             drug_features=args.drug_features,
+                             response_url=args.response_url,
+                             use_landmark_genes=args.use_landmark_genes,
+                             preprocess_rnaseq=args.preprocess_rnaseq,
+                             exclude_cells=args.exclude_cells,
+                             exclude_drugs=args.exclude_drugs,
+                             use_combo_score=args.use_combo_score,
+                             cv_partition=args.cv_partition, cv=args.cv)
+
+    train_gen = ComboDataGenerator(loader, batch_size=args.batch_size).flow()
+    val_gen = ComboDataGenerator(loader, partition='val', batch_size=args.batch_size).flow()
+
+    train_steps = int(loader.n_train / args.batch_size)
+    val_steps = int(loader.n_val / args.batch_size)
+
+    # model = build_model(loader, args, verbose=True)
+
+    # print('Creating model PNG')
+    # from keras.utils import plot_model
+    # plot_model(model, 'model_global_combo.png', show_shapes=True)
+    # print('Model PNG has been created successfuly!')
+
+    model.summary()
+    # plot_model(model, to_file=prefix+'.model.png', show_shapes=True)
+
+    if args.cp:
+        model_json = model.to_json()
+        with open(prefix+'.model.json', 'w') as f:
+            print(model_json, file=f)
+
+    def warmup_scheduler(epoch):
+        lr = args.learning_rate or base_lr * args.batch_size/100
+        if epoch <= 5:
+            K.set_value(model.optimizer.lr, (base_lr * (5-epoch) + lr * epoch) / 5)
+        logger.debug('Epoch {}: lr={}'.format(epoch, K.get_value(model.optimizer.lr)))
+        return K.get_value(model.optimizer.lr)
+
+    df_pred_list = []
+
+    cv_ext = ''
+    cv = args.cv if args.cv > 1 else 1
+
+    fold = 0
+    while fold < cv:
+        if args.cv > 1:
+            logger.info('Cross validation fold {}/{}:'.format(fold+1, cv))
+            cv_ext = '.cv{}'.format(fold+1)
+
+        # model = build_model(loader, args)
+
+        optimizer = optimizers.deserialize({'class_name': args.optimizer, 'config': {}})
+        base_lr = args.base_lr or K.get_value(optimizer.lr)
+        if args.learning_rate:
+            K.set_value(optimizer.lr, args.learning_rate)
+
+        model.compile(loss=args.loss, optimizer=optimizer, metrics=[mae, r2])
+
+        # calculate trainable and non-trainable params
+        params.update(candle.compute_trainable_params(model))
+
+        candle_monitor = candle.CandleRemoteMonitor(params=params)
+        timeout_monitor = candle.TerminateOnTimeOut(params['timeout'])
+
+        reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=0.00001)
+        warmup_lr = LearningRateScheduler(warmup_scheduler)
+        checkpointer = ModelCheckpoint(prefix+cv_ext+'.weights.h5', save_best_only=True, save_weights_only=True)
+        tensorboard = TensorBoard(log_dir="tb/tb{}{}".format(ext, cv_ext))
+        history_logger = LoggingCallback(logger.debug)
+        model_recorder = ModelRecorder()
+
+        # callbacks = [history_logger, model_recorder]
+        callbacks = [candle_monitor, timeout_monitor, history_logger, model_recorder]
+        if args.reduce_lr:
+            callbacks.append(reduce_lr)
+        if args.warmup_lr:
+            callbacks.append(warmup_lr)
+        if args.cp:
+            callbacks.append(checkpointer)
+        if args.tb:
+            callbacks.append(tensorboard)
+
+        if args.gen:
+            history = model.fit_generator(train_gen, train_steps,
+                                          epochs=args.epochs,
+                                          callbacks=callbacks,
+                                          validation_data=val_gen, validation_steps=val_steps)
+            fold += 1
+        else:
+            if args.cv > 1:
+                x_train_list, y_train, x_val_list, y_val, df_train, df_val = loader.load_data_cv(fold)
+            else:
+                x_train_list, y_train, x_val_list, y_val, df_train, df_val = loader.load_data()
+
+            y_shuf = np.random.permutation(y_val)
+            log_evaluation(evaluate_prediction(y_val, y_shuf),
+                           description='Between random pairs in y_val:')
+            history = model.fit(x_train_list, y_train,
+                                batch_size=args.batch_size,
+                                shuffle=args.shuffle,
+                                epochs=args.epochs,
+                                callbacks=callbacks,
+                                validation_data=(x_val_list, y_val))
+
+        if args.cp:
+            model.load_weights(prefix+cv_ext+'.weights.h5')
+
+        if not args.gen:
+            y_val_pred = model.predict(x_val_list, batch_size=args.batch_size).flatten()
+            scores = evaluate_prediction(y_val, y_val_pred)
+            if args.cv > 1 and scores[args.loss] > args.max_val_loss:
+                logger.warn('Best val_loss {} is greater than {}; retrain the model...'.format(scores[args.loss], args.max_val_loss))
+                continue
+            else:
+                fold += 1
+            log_evaluation(scores)
+            df_val.is_copy = False
+            df_val['GROWTH_PRED'] = y_val_pred
+            df_val['GROWTH_ERROR'] = y_val_pred - y_val
+            df_pred_list.append(df_val)
+
+        if args.cp:
+            # model.save(prefix+'.model.h5')
+            model_recorder.best_model.save(prefix+'.model.h5')
+
+            # test reloadded model prediction
+            # new_model = keras.models.load_model(prefix+'.model.h5')
+            # new_model.load_weights(prefix+cv_ext+'.weights.h5')
+            # new_pred = new_model.predict(x_val_list, batch_size=args.batch_size).flatten()
+            # print('y_val:', y_val[:10])
+            # print('old_pred:', y_val_pred[:10])
+            # print('new_pred:', new_pred[:10])
+
+        plot_history(prefix, history, 'loss')
+        plot_history(prefix, history, 'r2')
+
+        if K.backend() == 'tensorflow':
+            K.clear_session()
+
+    if not args.gen:
+        pred_fname = prefix + '.predicted.growth.tsv'
+        if args.use_combo_score:
+            pred_fname = prefix + '.predicted.score.tsv'
+        df_pred = pd.concat(df_pred_list)
+        df_pred.to_csv(pred_fname, sep='\t', index=False, float_format='%.4g')
+
+    logger.handlers = []
+
+    return history
+
 def load_data_combo():
     params = initialize_parameters()
-    return run(params)
+    params['batch_size'] = 1
+    args = Struct(**params)
+    set_seed(args.rng_seed)
+    ext = extension_from_parameters(args)
+    verify_path(args.save)
+    prefix = args.save + ext
+    logfile = args.logfile if args.logfile else prefix+'.log'
+    set_up_logger(logfile, args.verbose)
+    logger.info('Params: {}'.format(params))
+
+    loader = ComboDataLoader(seed=args.rng_seed,
+                             val_split=args.validation_split,
+                             cell_features=args.cell_features,
+                             drug_features=args.drug_features,
+                             response_url=args.response_url,
+                             use_landmark_genes=args.use_landmark_genes,
+                             preprocess_rnaseq=args.preprocess_rnaseq,
+                             exclude_cells=args.exclude_cells,
+                             exclude_drugs=args.exclude_drugs,
+                             use_combo_score=args.use_combo_score,
+                             cv_partition=args.cv_partition, cv=args.cv)
+    # test_loader(loader)
+    # test_generator(loader)
+
+    train_gen = ComboDataGenerator(loader, batch_size=args.batch_size).flow()
+    val_gen = ComboDataGenerator(loader, partition='val', batch_size=args.batch_size).flow()
+
+    train_steps = int(loader.n_train / args.batch_size)
+    val_steps = int(loader.n_val / args.batch_size)
+
+    def train_gen_dh():
+        for x_list, y in train_gen:
+            yield ({
+                "input_0": np.squeeze(x_list[0]),
+                "input_1": np.squeeze(x_list[1]),
+                "input_2": np.squeeze(x_list[2])
+                }, y.reshape((1, )))
+
+    def valid_gen_dh():
+        for x_list, y in val_gen:
+            yield ({
+                "input_0": np.squeeze(x_list[0]),
+                "input_1": np.squeeze(x_list[1]),
+                "input_2": np.squeeze(x_list[2])
+                }, y.reshape((1, )))
+
+    res = {
+        "train_gen": train_gen_dh,
+        "train_size": loader.n_train,
+        "valid_gen": valid_gen_dh,
+        "valid_size": loader.n_val,
+        "types": ({
+            "input_0": tf.float32,
+            "input_1": tf.float32,
+            "input_2": tf.float32
+            }, tf.float32),
+        "shapes": ({
+            "input_0": (942, ),
+            "input_1": (3820, ),
+            "input_2": (3820, )
+            }, (1, ))
+    }
+    print(f'load_data:\n', pformat(res))
+    return res
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -696,9 +1107,11 @@ def load_data_deephyper(prop=0.1):
 
     return (x_train_list, y_train), (x_val_list, y_val)
 
+
+
+
 def load_data_deephyper_gen(prop=0.1):
     (x_train_list, y_train), (x_val_list, y_val) = load_data_deephyper(prop=prop)
-
     def train_gen():
         for x0, x1, x2, y in zip(*x_train_list, y_train):
             yield ({
@@ -735,6 +1148,9 @@ def load_data_deephyper_gen(prop=0.1):
     return res
 
 if __name__ == '__main__':
-    res = load_data_deephyper_gen()
+    # res = load_data_deephyper_gen(prop=1.)
+    from candlepb.Combo.problem_exp5 import Problem
+    config = Problem.space
+    run_model(config)
 
 

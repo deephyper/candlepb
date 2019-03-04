@@ -24,6 +24,9 @@ def create_cell_1(input_nodes):
     def create_block(input_node):
 
         def add_mlp_ops_to(vnode):
+            REG_L1 = 0.1
+            REG_L2 = 0.1
+
             # n.add_op(Identity())
             # n.add_op(Conv1D(filter_size=3, num_filters=16))
             # n.add_op(MaxPooling1D(pool_size=3, padding='same'))
@@ -35,7 +38,12 @@ def create_cell_1(input_nodes):
             # n.add_op(Dense(500, tf.nn.tanh))
             # n.add_op(Conv1D(filter_size=10, num_filters=16))
             # n.add_op(MaxPooling1D(pool_size=10, padding='same'))
-            vnode.add_op(Dense(1000, tf.nn.relu))
+            vnode.add_op(Dense(
+                units=1000,
+                activation=tf.nn.relu,
+                kernel_regularizer=tf.keras.regularizers.l2(REG_L2),
+                bias_regularizer=tf.keras.regularizers.l2(REG_L2),
+                activity_regularizer=tf.keras.regularizers.l1(REG_L1)))
             # vnode.add_op(Dense(1000, tf.nn.tanh))
 
         # first node of block
@@ -106,6 +114,9 @@ def create_cell_2(input_nodes):
     def create_block(input_node):
 
         def create_mlp_node(name):
+            REG_L2 = 0.1
+            REG_L1 = 0.1
+
             n = VariableNode(name)
             # n.add_op(Identity())
             # n.add_op(Conv1D(filter_size=3, num_filters=16))
@@ -118,7 +129,12 @@ def create_cell_2(input_nodes):
             # n.add_op(Dense(500, tf.nn.tanh))
             # n.add_op(Conv1D(filter_size=10, num_filters=16))
             # n.add_op(MaxPooling1D(pool_size=10, padding='same'))
-            n.add_op(Dense(1000, tf.nn.relu))
+            n.add_op(Dense(
+                units=1000,
+                activation=tf.nn.relu,
+                kernel_regularizer=tf.keras.regularizers.l2(REG_L2),
+                bias_regularizer=tf.keras.regularizers.l2(REG_L2),
+                activity_regularizer=tf.keras.regularizers.l1(REG_L1)))
             # n.add_op(Dense(1000, tf.nn.tanh))
             return n
 
@@ -129,15 +145,15 @@ def create_cell_2(input_nodes):
         # second node of block
         n2 = create_mlp_node('N2')
 
-        # n3 = create_mlp_node('N3')
+        n3 = create_mlp_node('N3')
 
         block = Block()
         block.add_node(n1)
         block.add_node(n2)
-        # block.add_node(n3)
+        block.add_node(n3)
 
         block.add_edge(n1, n2)
-        # block.add_edge(n2, n3)
+        block.add_edge(n2, n3)
         return block
 
     block = create_block(input_nodes[0])

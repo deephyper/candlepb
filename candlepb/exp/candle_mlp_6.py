@@ -27,7 +27,7 @@ def create_cell_1(input_nodes):
             # n.add_op(Identity())
             # vnode.add_op(Conv1D(filter_size=3, num_filters=16))
             # n.add_op(MaxPooling1D(pool_size=3, padding='same'))
-            vnode.add_op(Dense(100, tf.nn.relu))
+            # vnode.add_op(Dense(100, tf.nn.relu))
             # n.add_op(Dense(100, tf.nn.tanh))
             # n.add_op(Conv1D(filter_size=5, num_filters=16))
             # n.add_op(MaxPooling1D(pool_size=5, padding='same'))
@@ -35,7 +35,7 @@ def create_cell_1(input_nodes):
             # n.add_op(Dense(500, tf.nn.tanh))
             # n.add_op(Conv1D(filter_size=10, num_filters=16))
             # n.add_op(MaxPooling1D(pool_size=10, padding='same'))
-            # vnode.add_op(Dense(1000, tf.nn.relu))
+            vnode.add_op(Dense(1000, tf.nn.relu))
             # vnode.add_op(Dense(1000, tf.nn.tanh))
 
         # first node of block
@@ -93,7 +93,7 @@ def create_cell_2(input_nodes):
             # n.add_op(Identity())
             # n.add_op(Conv1D(filter_size=3, num_filters=16))
             # n.add_op(MaxPooling1D(pool_size=3, padding='same'))
-            # n.add_op(Dense(100, tf.nn.relu))
+            # n.add_op(Dense(10, tf.nn.relu))
             # n.add_op(Dense(100, tf.nn.tanh))
             # n.add_op(Conv1D(filter_size=5, num_filters=16))
             # n.add_op(MaxPooling1D(pool_size=5, padding='same'))
@@ -142,8 +142,8 @@ def create_structure(input_shape=(2,), output_shape=(1,), *args, **kwargs):
     func = lambda: create_cell_1(input_nodes)
     network.add_cell_f(func)
 
-    # func = lambda x: create_cell_2(x)
-    # network.add_cell_f(func, num=1)
+    func = lambda x: create_cell_2(x)
+    network.add_cell_f(func, num=1)
 
     return network
 

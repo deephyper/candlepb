@@ -24,8 +24,8 @@ from deephyper.search.nas.model.trainer.regressor_train_valid import \
 from deephyper.search.nas.model.trainer.classifier_train_valid import \
     TrainerClassifierTrainValid
 
-PROP = 0.1
-NUM_EPOCHS = 1
+PROP = 1.0
+NUM_EPOCHS = 10
 ARCH_SEQ = [
             0.1,
             0.1,
