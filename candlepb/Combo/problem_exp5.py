@@ -31,7 +31,7 @@ Problem.add_dim('hyperparameters', {
     'optimizer': 'adam',
     'num_epochs': 1,
     'loss_metric': 'mean_squared_error',
-    'metrics': ['mean_squared_error']
+    'metrics': ['mse', 'mae', 'r2']
 })
 
 # Just to print your problem, to test its definition and imports in the current python environment.
