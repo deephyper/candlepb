@@ -536,7 +536,7 @@ class ModelRecorder(Callback):
         val_loss = logs.get('val_loss')
         self.val_losses.append(val_loss)
         if val_loss < self.best_val_loss:
-            self.best_model = keras.models.clone_model(self.model)
+            self.best_model = tf.keras.models.clone_model(self.model)
             self.best_val_loss = val_loss
 
 def initialize_parameters():
@@ -808,7 +808,7 @@ def run_model(config):
     # plot_model(model, 'model_global_combo.png', show_shapes=True)
     # print('Model PNG has been created successfuly!')
 
-    model.summary()
+    # model.summary()
     # plot_model(model, to_file=prefix+'.model.png', show_shapes=True)
 
     if args.cp:
