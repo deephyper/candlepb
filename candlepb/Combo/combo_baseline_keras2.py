@@ -749,7 +749,7 @@ def log_evaluation(metric_outputs, description='Comparing y_true and y_pred:'):
 from time import time
 from deephyper.benchmark.util import numpy_dict_cache
 
-@numpy_dict_cache('/home/deathn0t/Documents/Argonne/posttraining/combo/exp5/data.npz')
+@numpy_dict_cache('/local/scratch/combo_data.npz')
 def combo_ld_numpy(args):
 
     # CANDLE
