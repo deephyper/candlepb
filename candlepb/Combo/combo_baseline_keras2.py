@@ -12,6 +12,7 @@ import threading
 import numpy as np
 import pandas as pd
 import json
+import tempfile
 
 from itertools import cycle, islice
 
@@ -782,6 +783,7 @@ def combo_ld_numpy(args):
 
 def run_model(config):
 
+    t1 = time.time()
     num_epochs = config['hyperparameters']['num_epochs']
 
     config['create_structure']['func'] = util.load_attr_from(
@@ -804,7 +806,11 @@ def run_model(config):
 
     model = structure.create_model()
     model.summary()
+    t2 = time.time()
+    t_model_create = t2 - t1
+    print('Time model creation: ', t_model_create)
 
+    t1 = time.time()
     params = initialize_parameters()
     args = Struct(**params)
     set_seed(args.rng_seed)
@@ -822,12 +828,19 @@ def run_model(config):
     y_train = data['y_train']
     x_val_list = [data['x_val_0'], data['x_val_1'], data['x_val_2']]
     y_val = data['y_val']
+    t2 = time.time()
+    t_data_loading = t2 - t1
+    print('Time data loading: ', t_data_loading)
 
+    t1 = time.time()
     history = model.fit(x_train_list, y_train,
                         batch_size=args.batch_size,
                         shuffle=args.shuffle,
                         epochs=num_epochs,
                         validation_data=(x_val_list, y_val))
+    t2 = time.time()
+    t_training = t2 - t1
+    print('Time training: ', t_training)
 
     print(history.history)
 
