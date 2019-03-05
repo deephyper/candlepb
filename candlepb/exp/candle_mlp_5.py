@@ -169,7 +169,7 @@ def create_cell_2(input_nodes):
     cell.set_outputs()
     return cell
 
-def create_structure(input_shape=(2,), output_shape=(1,), *args, **kwargs):
+def create_structure(input_shape=[(2,), (2,), (2,)], output_shape=(1,), *args, **kwargs):
 
     network = KerasStructure(input_shape, output_shape)
     input_nodes = network.input_nodes
