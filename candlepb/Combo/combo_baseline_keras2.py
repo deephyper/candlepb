@@ -808,8 +808,6 @@ def run_model(config):
     params = initialize_parameters()
     args = Struct(**params)
     set_seed(args.rng_seed)
-    ext = extension_from_parameters(args)
-    verify_path(args.save)
 
     optimizer = optimizers.deserialize({'class_name': args.optimizer, 'config': {}})
     base_lr = args.base_lr or K.get_value(optimizer.lr)
