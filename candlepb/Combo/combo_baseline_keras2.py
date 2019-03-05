@@ -11,6 +11,7 @@ import threading
 
 import numpy as np
 import pandas as pd
+import json
 
 from itertools import cycle, islice
 
@@ -781,10 +782,10 @@ def combo_ld_numpy(args):
 
 def run_model(config):
 
-    # config['create_structure']['func'] = util.load_attr_from(
-    #     config['create_structure']['func'])
+    num_epochs = config['hyperparameters']['num_epochs']
 
-    t1 = time() # T1
+    config['create_structure']['func'] = util.load_attr_from(
+         config['create_structure']['func'])
 
     input_shape =  [(942, ), (3820, ), (3820, )]
     output_shape = (1, )
@@ -795,17 +796,13 @@ def run_model(config):
     else:
         structure = config['create_structure']['func'](input_shape, output_shape, **cs_kwargs)
 
-    # arch_seq = config['arch_seq']
-    from random import random
-    arch_seq = [random() for i in range(structure.num_nodes)]
+    arch_seq = config['arch_seq']
 
     print(f'actions list: {arch_seq}')
 
     structure.set_ops(arch_seq)
-    structure.draw_graphviz('graph_full.dot')
 
     model = structure.create_model()
-    plot_model(model, to_file='model.png', show_shapes=True)
     model.summary()
 
     params = initialize_parameters()
@@ -814,53 +811,29 @@ def run_model(config):
     ext = extension_from_parameters(args)
     verify_path(args.save)
 
-    t2 = time() # T2
-    t3 = time() # T3
-    t4 = time() # T4
-    t5 = time() # T5
-    t6 = time() # T6
+    optimizer = optimizers.deserialize({'class_name': args.optimizer, 'config': {}})
+    base_lr = args.base_lr or K.get_value(optimizer.lr)
+    if args.learning_rate:
+        K.set_value(optimizer.lr, args.learning_rate)
 
-    cv = args.cv if args.cv > 1 else 1
+    model.compile(loss=args.loss, optimizer=optimizer, metrics=[mae, r2])
 
-    fold = 0
-    while fold < cv:
+    data = combo_ld_numpy(args)
 
-        optimizer = optimizers.deserialize({'class_name': args.optimizer, 'config': {}})
-        base_lr = args.base_lr or K.get_value(optimizer.lr)
-        if args.learning_rate:
-            K.set_value(optimizer.lr, args.learning_rate)
+    x_train_list = [data['x_train_0'], data['x_train_1'], data['x_train_2']]
+    y_train = data['y_train']
+    x_val_list = [data['x_val_0'], data['x_val_1'], data['x_val_2']]
+    y_val = data['y_val']
 
-        model.compile(loss=args.loss, optimizer=optimizer, metrics=[mae, r2])
+    history = model.fit(x_train_list, y_train,
+                        batch_size=args.batch_size,
+                        shuffle=args.shuffle,
+                        epochs=num_epochs,
+                        validation_data=(x_val_list, y_val))
 
-        t8 = time()
-        data = combo_ld_numpy(args)
-        x_train_list = [data['x_train_0'], data['x_train_1'], data['x_train_2']]
-        y_train = data['y_train']
-        x_val_list = [data['x_val_0'], data['x_val_1'], data['x_val_2']]
-        y_val = data['y_val']
-        t7 = time() # T7
+    print(history.history)
 
-        timing = {
-            'from_start': t7 - t1,
-            'train_load': t5 - t4,
-            'valid_load': t6 - t5,
-            'data_loader': t4 - t3,
-            'after_loading_before_fit': t7 - t6,
-            'first_part': t2 - t1,
-            'second_part': t3 - t2,
-            'both_parts': t3 - t1,
-            'load_data': t7 - t8,
-        }
-
-        from pprint import pprint
-        pprint(timing)
-
-        history = model.fit(x_train_list, y_train,
-                            batch_size=args.batch_size,
-                            shuffle=args.shuffle,
-                            epochs=args.epochs,
-                            validation_data=(x_val_list, y_val))
-
+    return history.history['val_r2'][0]
 
 
 def load_data_combo():
