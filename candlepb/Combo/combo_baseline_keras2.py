@@ -747,7 +747,6 @@ def log_evaluation(metric_outputs, description='Comparing y_true and y_pred:'):
     for metric, value in metric_outputs.items():
         logger.info('  {}: {:.4f}'.format(metric, value))
 
-from time import time
 from deephyper.benchmark.util import numpy_dict_cache
 
 @numpy_dict_cache('/local/scratch/combo_data.npz')
