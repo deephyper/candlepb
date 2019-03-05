@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import json
 import tempfile
+import time
 
 from itertools import cycle, islice
 
