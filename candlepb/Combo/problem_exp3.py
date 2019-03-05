@@ -12,6 +12,9 @@ Problem.add_dim('regression', True)
 # You define how to load your data by giving a 'load_data' function. This function will return your data set following this interface: (train_X, train_y), (valid_X, valid_y). You can also add a 'kwargs' key with arguments for the load_data function.
 Problem.add_dim('load_data', {
     'func': load_data_deephyper_gen,
+    'kwargs': {
+        'prop': 0.1
+        }
 })
 
 # OPTIONAL : You define a preprocessing function which will be applied on your data before training generated models. This preprocessing function use sklearn preprocessors api.
@@ -29,7 +32,7 @@ Problem.add_dim('create_structure', {
 
 # You define the hyperparameters used to train your generated models during the search.
 Problem.add_dim('hyperparameters', {
-    'batch_size': 100,
+    'batch_size': 32,
     'learning_rate': 0.01,
     'optimizer': 'adam',
     'num_epochs': 1,
