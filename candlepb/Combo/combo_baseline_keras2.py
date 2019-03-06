@@ -27,6 +27,9 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense, Dropout
 from tensorflow.keras.callbacks import Callback, ModelCheckpoint, ReduceLROnPlateau, LearningRateScheduler, TensorBoard
 from tensorflow.keras.utils import get_custom_objects
+
+from deephyper.contrib.callbacks import StopIfUnfeasible
+
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 from sklearn.model_selection import KFold, StratifiedKFold, GroupKFold
 from scipy.stats.stats import pearsonr
@@ -749,6 +752,7 @@ def log_evaluation(metric_outputs, description='Comparing y_true and y_pred:'):
 
 from deephyper.benchmark.util import numpy_dict_cache
 
+# @numpy_dict_cache('/Users/romainegele/Documents/Argonne/trash/combo_data.npz')
 @numpy_dict_cache('/dev/shm/combo_data.npz')
 def combo_ld_numpy(args):
 
@@ -832,19 +836,28 @@ def run_model(config):
     t_data_loading = t2 - t1
     print('Time data loading: ', t_data_loading)
 
+    stop_if_unfeasible = StopIfUnfeasible(time_limit=600)
     t1 = time.time()
     history = model.fit(x_train_list, y_train,
                         batch_size=args.batch_size,
                         shuffle=args.shuffle,
                         epochs=num_epochs,
+                        callbacks=[stop_if_unfeasible],
                         validation_data=(x_val_list, y_val))
     t2 = time.time()
     t_training = t2 - t1
     print('Time training: ', t_training)
 
+    print('avr_batch_timing :', stop_if_unfeasible.avr_batch_time)
+    print('avr_timing: ', stop_if_unfeasible.estimate_training_time)
+    print('stopped: ', stop_if_unfeasible.stopped)
+
     print(history.history)
 
-    return history.history['val_r2'][0]
+    try:
+        return history.history['val_r2'][0]
+    except:
+        return -1.0
 
 
 def load_data_combo():
@@ -1063,6 +1076,7 @@ if __name__ == '__main__':
     # res = load_data_deephyper_gen(prop=1.)
     from candlepb.Combo.problem_exp5 import Problem
     config = Problem.space
+    config['arch_seq'] = [0.15384615384615385, 0.8461538461538461, 0.3076923076923077, 0.46153846153846156, 0.6923076923076923, 0.7692307692307693, 0.5384615384615384, 0.8461538461538461, 0.5384615384615384]
     run_model(config)
 
 
