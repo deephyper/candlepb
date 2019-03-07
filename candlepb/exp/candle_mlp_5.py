@@ -6,7 +6,7 @@ from deephyper.search.nas.model.space.node import VariableNode, ConstantNode, Mi
 from deephyper.search.nas.model.space.structure import KerasStructure
 from deephyper.search.nas.model.space.op.basic import Connect, AddByPadding
 from deephyper.search.nas.model.space.op.op1d import (Conv1D, Dense, Identity,
-                                                      MaxPooling1D,
+                                                      MaxPooling1D, Dropout,
                                                       dropout_ops)
 
 
@@ -30,10 +30,16 @@ def create_cell_1(input_nodes):
             vnode.add_op(Identity())
             vnode.add_op(Dense(100, tf.nn.relu))
             vnode.add_op(Dense(100, tf.nn.tanh))
+            vnode.add_op(Dense(100, tf.nn.sigmoid))
+            vnode.add_op(Dropout(0.05))
             vnode.add_op(Dense(500, tf.nn.relu))
             vnode.add_op(Dense(500, tf.nn.tanh))
-            vnode.add_op(Dense(units=1000, activation=tf.nn.relu))
+            vnode.add_op(Dense(500, tf.nn.sigmoid))
+            vnode.add_op(Dropout(0.1))
+            vnode.add_op(Dense(1000, tf.nn.relu))
             vnode.add_op(Dense(1000, tf.nn.tanh))
+            vnode.add_op(Dense(1000, tf.nn.sigmoid))
+            vnode.add_op(Dropout(0.2))
 
         # first node of block
         n1 = VariableNode('N1')
@@ -110,10 +116,16 @@ def create_cell_2(input_nodes):
             n.add_op(Identity())
             n.add_op(Dense(100, tf.nn.relu))
             n.add_op(Dense(100, tf.nn.tanh))
+            n.add_op(Dense(100, tf.nn.sigmoid))
+            n.add_op(Dropout(0.05))
             n.add_op(Dense(500, tf.nn.relu))
             n.add_op(Dense(500, tf.nn.tanh))
-            n.add_op(Dense(units=1000, activation=tf.nn.relu))
+            n.add_op(Dense(500, tf.nn.sigmoid))
+            n.add_op(Dropout(0.1))
+            n.add_op(Dense(1000, tf.nn.relu))
             n.add_op(Dense(1000, tf.nn.tanh))
+            n.add_op(Dense(1000, tf.nn.sigmoid))
+            n.add_op(Dropout(0.2))
             return n
 
         # first node of block

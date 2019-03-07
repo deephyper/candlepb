@@ -772,15 +772,19 @@ def combo_ld_numpy(args):
 
     x_train_list, y_train, x_val_list, y_val, df_train, df_val = loader.load_data()
 
+    prop = 0.1
+    cursor_train = int(len(y_train) * prop)
+    cursor_valid = int(len(y_val) * prop)
+
     data = {
-        'x_train_0': x_train_list[0],
-        'x_train_1': x_train_list[1],
-        'x_train_2': x_train_list[2],
-        'y_train': y_train,
-        'x_val_0': x_val_list[0],
-        'x_val_1': x_val_list[1],
-        'x_val_2': x_val_list[2],
-        'y_val': y_val
+        'x_train_0': x_train_list[0][:cursor_train],
+        'x_train_1': x_train_list[1][:cursor_train],
+        'x_train_2': x_train_list[2][:cursor_train],
+        'y_train': y_train[:cursor_train],
+        'x_val_0': x_val_list[0][:cursor_valid],
+        'x_val_1': x_val_list[1][:cursor_valid],
+        'x_val_2': x_val_list[2][:cursor_valid],
+        'y_val': y_val[:cursor_valid]
     }
 
     return data
@@ -831,13 +835,13 @@ def run_model(config):
 
     model.compile(loss=args.loss, optimizer=optimizer, metrics=[mae, r2])
 
-    (x_train_list, y_train), (x_val_list, y_val) = load_data_deephyper(prop=0.1)
-    # data = combo_ld_numpy(args)
+    # (x_train_list, y_train), (x_val_list, y_val) = load_data_deephyper(prop=0.1)
+    data = combo_ld_numpy(args)
 
-    # x_train_list = [data['x_train_0'], data['x_train_1'], data['x_train_2']]
-    # y_train = data['y_train']
-    # x_val_list = [data['x_val_0'], data['x_val_1'], data['x_val_2']]
-    # y_val = data['y_val']
+    x_train_list = [data['x_train_0'], data['x_train_1'], data['x_train_2']]
+    y_train = data['y_train']
+    x_val_list = [data['x_val_0'], data['x_val_1'], data['x_val_2']]
+    y_val = data['y_val']
     t2 = time.time()
     t_data_loading = t2 - t1
     print('Time data loading: ', t_data_loading)
