@@ -842,7 +842,7 @@ def run_model(config):
     t_data_loading = t2 - t1
     print('Time data loading: ', t_data_loading)
 
-    stop_if_unfeasible = StopIfUnfeasible(time_limit=600)
+    stop_if_unfeasible = StopIfUnfeasible(time_limit=900)
     t1 = time.time()
     history = model.fit(x_train_list, y_train,
                         batch_size=args.batch_size,
@@ -936,7 +936,6 @@ def load_data_combo():
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
-@numpy_dict_cache('/dev/shm/combo_data.npz')
 def load_data_deephyper(prop=0.1):
     fnames = [f'x_train-{prop}', f'y_train-{prop}', f'x_valid-{prop}', f'y_valid-{prop}']
     dir_path = "{}/DATA".format(HERE)
