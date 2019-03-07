@@ -807,8 +807,13 @@ def run_model(config):
     print(f'actions list: {arch_seq}')
 
     structure.set_ops(arch_seq)
+    structure.draw_graphviz('model_global_combo.dot')
 
     model = structure.create_model()
+
+    from keras.utils import plot_model
+    plot_model(model, 'model_global_combo.png', show_shapes=True)
+
     model.summary()
     t2 = time.time()
     t_model_create = t2 - t1
@@ -1078,6 +1083,7 @@ if __name__ == '__main__':
     from candlepb.Combo.problem_exp5 import Problem
     config = Problem.space
     config['arch_seq'] = [0.15384615384615385, 0.8461538461538461, 0.3076923076923077, 0.46153846153846156, 0.6923076923076923, 0.7692307692307693, 0.5384615384615384, 0.8461538461538461, 0.5384615384615384]
+    config['arch_seq'] = [0.9 for i in range(len(config['arch_seq']))]
     run_model(config)
 
 
