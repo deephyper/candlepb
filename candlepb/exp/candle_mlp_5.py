@@ -28,23 +28,11 @@ def create_cell_1(input_nodes):
             # REG_L2 = 1.
 
             vnode.add_op(Identity())
-            # vnode.add_op(Conv1D(filter_size=3, num_filters=16))
-            # vnode.add_op(MaxPooling1D(pool_size=3, padding='same'))
             vnode.add_op(Dense(100, tf.nn.relu))
             vnode.add_op(Dense(100, tf.nn.tanh))
-            # vnode.add_op(Conv1D(filter_size=5, num_filters=16))
-            # vnode.add_op(MaxPooling1D(pool_size=5, padding='same'))
             vnode.add_op(Dense(500, tf.nn.relu))
             vnode.add_op(Dense(500, tf.nn.tanh))
-            # vnode.add_op(Conv1D(filter_size=10, num_filters=16))
-            # vnode.add_op(MaxPooling1D(pool_size=10, padding='same'))
-            vnode.add_op(Dense(
-                units=1000,
-                activation=tf.nn.relu,
-                # kernel_regularizer=tf.keras.regularizers.l2(REG_L2),
-                # bias_regularizer=tf.keras.regularizers.l2(REG_L2),
-                # activity_regularizer=tf.keras.regularizers.l1(REG_L1)
-            ))
+            vnode.add_op(Dense(units=1000, activation=tf.nn.relu))
             vnode.add_op(Dense(1000, tf.nn.tanh))
 
         # first node of block
@@ -120,23 +108,11 @@ def create_cell_2(input_nodes):
 
             n = VariableNode(name)
             n.add_op(Identity())
-            # n.add_op(Conv1D(filter_size=3, num_filters=16))
-            # n.add_op(MaxPooling1D(pool_size=3, padding='same'))
             n.add_op(Dense(100, tf.nn.relu))
             n.add_op(Dense(100, tf.nn.tanh))
-            # n.add_op(Conv1D(filter_size=5, num_filters=16))
-            # n.add_op(MaxPooling1D(pool_size=5, padding='same'))
             n.add_op(Dense(500, tf.nn.relu))
             n.add_op(Dense(500, tf.nn.tanh))
-            # n.add_op(Conv1D(filter_size=10, num_filters=16))
-            # n.add_op(MaxPooling1D(pool_size=10, padding='same'))
-            n.add_op(Dense(
-                units=1000,
-                activation=tf.nn.relu,
-                # kernel_regularizer=tf.keras.regularizers.l2(REG_L2),
-                # bias_regularizer=tf.keras.regularizers.l2(REG_L2),
-                # activity_regularizer=tf.keras.regularizers.l1(REG_L1)
-                ))
+            n.add_op(Dense(units=1000, activation=tf.nn.relu))
             n.add_op(Dense(1000, tf.nn.tanh))
             return n
 
