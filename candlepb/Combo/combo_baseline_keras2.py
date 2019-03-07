@@ -807,12 +807,12 @@ def run_model(config):
     print(f'actions list: {arch_seq}')
 
     structure.set_ops(arch_seq)
-    structure.draw_graphviz('model_global_combo.dot')
+    # structure.draw_graphviz('model_global_combo.dot')
 
     model = structure.create_model()
 
-    from keras.utils import plot_model
-    plot_model(model, 'model_global_combo.png', show_shapes=True)
+    # from keras.utils import plot_model
+    # plot_model(model, 'model_global_combo.png', show_shapes=True)
 
     model.summary()
     t2 = time.time()
@@ -935,6 +935,8 @@ def load_data_combo():
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
+
+@numpy_dict_cache('/dev/shm/combo_data.npz')
 def load_data_deephyper(prop=0.1):
     fnames = [f'x_train-{prop}', f'y_train-{prop}', f'x_valid-{prop}', f'y_valid-{prop}']
     dir_path = "{}/DATA".format(HERE)
@@ -1080,7 +1082,7 @@ def load_data_deephyper_gen(prop=0.1):
 
 if __name__ == '__main__':
     # res = load_data_deephyper_gen(prop=1.)
-    from candlepb.Combo.problem_exp5 import Problem
+    from candlepb.Combo.problem_exp6 import Problem
     config = Problem.space
     config['arch_seq'] = [0.15384615384615385, 0.8461538461538461, 0.3076923076923077, 0.46153846153846156, 0.6923076923076923, 0.7692307692307693, 0.5384615384615384, 0.8461538461538461, 0.5384615384615384]
     config['arch_seq'] = [0.9 for i in range(len(config['arch_seq']))]

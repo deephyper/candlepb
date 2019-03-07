@@ -28,16 +28,16 @@ def create_cell_1(input_nodes):
             # REG_L2 = 1.
 
             vnode.add_op(Identity())
-            vnode.add_op(Conv1D(filter_size=3, num_filters=16))
-            vnode.add_op(MaxPooling1D(pool_size=3, padding='same'))
+            # vnode.add_op(Conv1D(filter_size=3, num_filters=16))
+            # vnode.add_op(MaxPooling1D(pool_size=3, padding='same'))
             vnode.add_op(Dense(100, tf.nn.relu))
             vnode.add_op(Dense(100, tf.nn.tanh))
-            vnode.add_op(Conv1D(filter_size=5, num_filters=16))
-            vnode.add_op(MaxPooling1D(pool_size=5, padding='same'))
+            # vnode.add_op(Conv1D(filter_size=5, num_filters=16))
+            # vnode.add_op(MaxPooling1D(pool_size=5, padding='same'))
             vnode.add_op(Dense(500, tf.nn.relu))
             vnode.add_op(Dense(500, tf.nn.tanh))
-            vnode.add_op(Conv1D(filter_size=10, num_filters=16))
-            vnode.add_op(MaxPooling1D(pool_size=10, padding='same'))
+            # vnode.add_op(Conv1D(filter_size=10, num_filters=16))
+            # vnode.add_op(MaxPooling1D(pool_size=10, padding='same'))
             vnode.add_op(Dense(
                 units=1000,
                 activation=tf.nn.relu,
@@ -120,16 +120,16 @@ def create_cell_2(input_nodes):
 
             n = VariableNode(name)
             n.add_op(Identity())
-            n.add_op(Conv1D(filter_size=3, num_filters=16))
-            n.add_op(MaxPooling1D(pool_size=3, padding='same'))
+            # n.add_op(Conv1D(filter_size=3, num_filters=16))
+            # n.add_op(MaxPooling1D(pool_size=3, padding='same'))
             n.add_op(Dense(100, tf.nn.relu))
             n.add_op(Dense(100, tf.nn.tanh))
-            n.add_op(Conv1D(filter_size=5, num_filters=16))
-            n.add_op(MaxPooling1D(pool_size=5, padding='same'))
+            # n.add_op(Conv1D(filter_size=5, num_filters=16))
+            # n.add_op(MaxPooling1D(pool_size=5, padding='same'))
             n.add_op(Dense(500, tf.nn.relu))
             n.add_op(Dense(500, tf.nn.tanh))
-            n.add_op(Conv1D(filter_size=10, num_filters=16))
-            n.add_op(MaxPooling1D(pool_size=10, padding='same'))
+            # n.add_op(Conv1D(filter_size=10, num_filters=16))
+            # n.add_op(MaxPooling1D(pool_size=10, padding='same'))
             n.add_op(Dense(
                 units=1000,
                 activation=tf.nn.relu,
@@ -193,7 +193,9 @@ def test_create_structure():
     structure = create_structure(shapes, (1,))
     assert type(structure) is KerasStructure
 
-    ops = [random() for i in range(structure.num_nodes)]
+    # ops = [random() for i in range(structure.num_nodes)]
+    # ops = [0.15384615384615385, 0.8461538461538461, 0.3076923076923077, 0.46153846153846156, 0.6923076923076923, 0.7692307692307693, 0.5384615384615384, 0.8461538461538461, 0.5384615384615384]
+    ops = [0.9 for i in range(structure.num_nodes)]
     # ops = [0 for i in range(structure.num_nodes)]
     print('num ops: ', len(ops))
     structure.set_ops(ops)
