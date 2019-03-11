@@ -2,12 +2,13 @@ import tensorflow as tf
 
 from deephyper.search.nas.model.space.block import Block
 from deephyper.search.nas.model.space.cell import Cell
-from deephyper.search.nas.model.space.node import VariableNode, ConstantNode, MirrorNode
-from deephyper.search.nas.model.space.structure import KerasStructure
-from deephyper.search.nas.model.space.op.basic import Connect, AddByPadding
-from deephyper.search.nas.model.space.op.op1d import (Conv1D, Dense, Identity,
-                                                      MaxPooling1D, Dropout,
+from deephyper.search.nas.model.space.node import (ConstantNode, MirrorNode,
+                                                   VariableNode)
+from deephyper.search.nas.model.space.op.basic import Connect, Tensor
+from deephyper.search.nas.model.space.op.op1d import (Concatenate, Dense,
+                                                      Dropout, Identity,
                                                       dropout_ops)
+from deephyper.search.nas.model.space.structure import KerasStructure
 
 
 def create_cell_1(input_nodes):
@@ -88,10 +89,6 @@ def create_cell_1(input_nodes):
     cell.add_block(block2)
     cell.add_block(block3)
 
-    # addNode = Node('Merging')
-    # addNode.add_op(AddByPadding(cell.graph, addNode, cell.get_blocks_output()))
-    # addNode.set_op(0)
-    # cell.set_outputs(node=addNode)
     cell.set_outputs()
     return cell
 
@@ -109,8 +106,6 @@ def create_cell_2(input_nodes):
     def create_block(input_node):
 
         def create_mlp_node(name):
-            # REG_L2 = 1.
-            # REG_L1 = 1.
 
             n = VariableNode(name)
             n.add_op(Identity())
@@ -151,10 +146,6 @@ def create_cell_2(input_nodes):
 
     cell.add_block(block)
 
-    # addNode = Node('Merging')
-    # addNode.add_op(AddByPadding(cell.graph, addNode, cell.get_blocks_output()))
-    # addNode.set_op(0)
-    # cell.set_outputs(node=addNode)
     cell.set_outputs()
     return cell
 
@@ -163,11 +154,31 @@ def create_structure(input_shape=[(2,), (2,), (2,)], output_shape=(1,), *args, *
     network = KerasStructure(input_shape, output_shape)
     input_nodes = network.input_nodes
 
-    func = lambda: create_cell_1(input_nodes)
-    network.add_cell_f(func)
+    cell1 = create_cell_1(input_nodes)
+    network.add_cell(cell1)
 
-    func = lambda x: create_cell_2(x)
-    network.add_cell_f(func, num=1)
+    cell2 = create_cell_2([cell1.output])
+    network.add_cell(cell2)
+
+    cell3 = Cell(input_nodes + [cell1.output] + [cell2.output])
+    cnode = VariableNode(name='SkipCo')
+    nullNode = ConstantNode(op=Tensor([]), name='None')
+    cnode.add_op(Connect(cell3.graph, nullNode, cnode))
+    cnode.add_op(Connect(cell3.graph, input_nodes[0], cnode))
+    cnode.add_op(Connect(cell3.graph, input_nodes[1], cnode))
+    cnode.add_op(Connect(cell3.graph, input_nodes[2], cnode))
+    cnode.add_op(Connect(cell3.graph, cell1.output, cnode))
+    cnode.add_op(Connect(cell3.graph, cell2.output, cnode))
+    cnode.add_op(Connect(cell3.graph, input_nodes, cnode))
+    cnode.add_op(Connect(cell3.graph, [input_nodes[0], input_nodes[1]], cnode))
+    cnode.add_op(Connect(cell3.graph, [input_nodes[1], input_nodes[2]], cnode))
+    cnode.add_op(Connect(cell3.graph, [input_nodes[0], input_nodes[2]], cnode))
+
+    block = Block()
+    block.add_node(cnode)
+    cell3.add_block(block)
+
+    network.add_cell(cell3)
 
     return network
 
@@ -182,9 +193,9 @@ def test_create_structure():
     structure = create_structure(shapes, (1,))
     assert type(structure) is KerasStructure
 
-    # ops = [random() for i in range(structure.num_nodes)]
+    ops = [random() for i in range(structure.num_nodes)]
     # ops = [0.15384615384615385, 0.8461538461538461, 0.3076923076923077, 0.46153846153846156, 0.6923076923076923, 0.7692307692307693, 0.5384615384615384, 0.8461538461538461, 0.5384615384615384]
-    ops = [0.9 for i in range(structure.num_nodes)]
+    # ops = [0.9 for i in range(structure.num_nodes)]
     # ops = [0 for i in range(structure.num_nodes)]
     print('num ops: ', len(ops))
     structure.set_ops(ops)
