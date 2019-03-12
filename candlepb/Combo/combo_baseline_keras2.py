@@ -774,17 +774,18 @@ def combo_ld_numpy(args):
 
     prop = 0.1
     cursor_train = int(len(y_train) * prop)
-    cursor_valid = int(len(y_val) * prop)
+    # prop = 1.
+    # cursor_valid = int(len(y_val) * prop)
 
     data = {
         'x_train_0': x_train_list[0][:cursor_train],
         'x_train_1': x_train_list[1][:cursor_train],
         'x_train_2': x_train_list[2][:cursor_train],
         'y_train': y_train[:cursor_train],
-        'x_val_0': x_val_list[0][:cursor_valid],
-        'x_val_1': x_val_list[1][:cursor_valid],
-        'x_val_2': x_val_list[2][:cursor_valid],
-        'y_val': y_val[:cursor_valid]
+        'x_val_0': x_val_list[0], #[:cursor_valid],
+        'x_val_1': x_val_list[1], #[:cursor_valid],
+        'x_val_2': x_val_list[2], #[:cursor_valid],
+        'y_val': y_val, #[:cursor_valid]
     }
 
     return data
