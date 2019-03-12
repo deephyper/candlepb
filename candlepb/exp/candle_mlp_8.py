@@ -4,12 +4,31 @@ from deephyper.search.nas.model.space.block import Block
 from deephyper.search.nas.model.space.cell import Cell
 from deephyper.search.nas.model.space.node import (ConstantNode, MirrorNode,
                                                    VariableNode)
-from deephyper.search.nas.model.space.op.basic import Connect, Tensor
+from deephyper.search.nas.model.space.op.basic import Connect, Tensor, AddByPadding
 from deephyper.search.nas.model.space.op.op1d import (Concatenate, Dense,
                                                       Dropout, Identity,
                                                       dropout_ops)
 from deephyper.search.nas.model.space.structure import KerasStructure
 
+def create_mlp_node(node):
+    node.add_op(Identity())
+    node.add_op(Dense(100, tf.nn.relu))
+    node.add_op(Dense(100, tf.nn.tanh))
+    node.add_op(Dense(100, tf.nn.sigmoid))
+    node.add_op(Dropout(0.05))
+    node.add_op(Dense(500, tf.nn.relu))
+    node.add_op(Dense(500, tf.nn.tanh))
+    node.add_op(Dense(500, tf.nn.sigmoid))
+    node.add_op(Dropout(0.1))
+    node.add_op(Dense(1000, tf.nn.relu))
+    node.add_op(Dense(1000, tf.nn.tanh))
+    node.add_op(Dense(1000, tf.nn.sigmoid))
+    node.add_op(Dropout(0.2))
+
+def set_cell_output_add(cell):
+    addNode = ConstantNode(name='Merging')
+    addNode.set_op(AddByPadding(cell.graph, addNode, cell.get_blocks_output()))
+    cell.set_outputs(node=addNode)
 
 def create_cell_1(input_nodes):
     """Create a cell with convolution.
@@ -24,36 +43,18 @@ def create_cell_1(input_nodes):
 
     def create_block(input_node):
 
-        def add_mlp_ops_to(vnode):
-            # REG_L1 = 1.
-            # REG_L2 = 1.
-
-            vnode.add_op(Identity())
-            vnode.add_op(Dense(100, tf.nn.relu))
-            vnode.add_op(Dense(100, tf.nn.tanh))
-            vnode.add_op(Dense(100, tf.nn.sigmoid))
-            vnode.add_op(Dropout(0.05))
-            vnode.add_op(Dense(500, tf.nn.relu))
-            vnode.add_op(Dense(500, tf.nn.tanh))
-            vnode.add_op(Dense(500, tf.nn.sigmoid))
-            vnode.add_op(Dropout(0.1))
-            vnode.add_op(Dense(1000, tf.nn.relu))
-            vnode.add_op(Dense(1000, tf.nn.tanh))
-            vnode.add_op(Dense(1000, tf.nn.sigmoid))
-            vnode.add_op(Dropout(0.2))
-
         # first node of block
         n1 = VariableNode('N1')
-        add_mlp_ops_to(n1)
+        create_mlp_node(n1)
         cell.graph.add_edge(input_node, n1) # fixed input of current block
 
         # second node of block
         n2 = VariableNode('N2')
-        add_mlp_ops_to(n2)
+        create_mlp_node(n2)
 
         # third node of the block
         n3 = VariableNode('N3')
-        add_mlp_ops_to(n3)
+        create_mlp_node(n3)
 
         block = Block()
         block.add_node(n1)
@@ -89,8 +90,31 @@ def create_cell_1(input_nodes):
     cell.add_block(block2)
     cell.add_block(block3)
 
-    cell.set_outputs()
+    set_cell_output_add(cell)
     return cell
+
+def create_mlp_block(cell, input_node):
+
+        # first node of block
+        n1 = VariableNode('N1')
+        create_mlp_node(n1)
+        cell.graph.add_edge(input_node, n1) # fixed input of current block
+
+        # second node of block
+        n2 = VariableNode('N2')
+        create_mlp_node(n2)
+
+        n3 = VariableNode('N3')
+        create_mlp_node(n3)
+
+        block = Block()
+        block.add_node(n1)
+        block.add_node(n2)
+        block.add_node(n3)
+
+        block.add_edge(n1, n2)
+        block.add_edge(n2, n3)
+        return block
 
 def create_cell_2(input_nodes):
     """Create a cell with convolution.
@@ -103,82 +127,52 @@ def create_cell_2(input_nodes):
     """
     cell = Cell(input_nodes)
 
-    def create_block(input_node):
+    block1 = create_mlp_block(cell, input_nodes[0])
 
-        def create_mlp_node(name):
-
-            n = VariableNode(name)
-            n.add_op(Identity())
-            n.add_op(Dense(100, tf.nn.relu))
-            n.add_op(Dense(100, tf.nn.tanh))
-            n.add_op(Dense(100, tf.nn.sigmoid))
-            n.add_op(Dropout(0.05))
-            n.add_op(Dense(500, tf.nn.relu))
-            n.add_op(Dense(500, tf.nn.tanh))
-            n.add_op(Dense(500, tf.nn.sigmoid))
-            n.add_op(Dropout(0.1))
-            n.add_op(Dense(1000, tf.nn.relu))
-            n.add_op(Dense(1000, tf.nn.tanh))
-            n.add_op(Dense(1000, tf.nn.sigmoid))
-            n.add_op(Dropout(0.2))
-
-            return n
-
-        # first node of block
-        n1 = create_mlp_node('N1')
-        cell.graph.add_edge(input_node, n1) # fixed input of current block
-
-        # second node of block
-        n2 = create_mlp_node('N2')
-
-        n3 = create_mlp_node('N3')
-
-        block = Block()
-        block.add_node(n1)
-        block.add_node(n2)
-        block.add_node(n3)
-
-        block.add_edge(n1, n2)
-        block.add_edge(n2, n3)
-        return block
-
-    block = create_block(input_nodes[0])
-
-    cell.add_block(block)
+    cell.add_block(block1)
 
     cell.set_outputs()
     return cell
 
 def create_structure(input_shape=[(2,), (2,), (2,)], output_shape=(1,), *args, **kwargs):
 
-    network = KerasStructure(input_shape, output_shape)
+    network = KerasStructure(input_shape, output_shape, output_op=AddByPadding)
     input_nodes = network.input_nodes
 
+    # CELL 1
     cell1 = create_cell_1(input_nodes)
     network.add_cell(cell1)
 
-    cell2 = create_cell_2([cell1.output])
-    network.add_cell(cell2)
+    # CELL 2
+    cell2 = Cell(input_nodes + [cell1.output])
 
-    cell3 = Cell(input_nodes + [cell1.output] + [cell2.output])
+    block1 = create_mlp_block(cell2, cell1.output)
+    cell2.add_block(block1)
+
     cnode = VariableNode(name='SkipCo')
     nullNode = ConstantNode(op=Tensor([]), name='None')
-    cnode.add_op(Connect(cell3.graph, nullNode, cnode)) # SAME
-    cnode.add_op(Connect(cell3.graph, input_nodes[0], cnode))
-    cnode.add_op(Connect(cell3.graph, input_nodes[1], cnode))
-    cnode.add_op(Connect(cell3.graph, input_nodes[2], cnode))
-    cnode.add_op(Connect(cell3.graph, cell1.output, cnode))
-    cnode.add_op(Connect(cell3.graph, cell2.output, cnode)) # SAME
-    cnode.add_op(Connect(cell3.graph, input_nodes, cnode))
-    cnode.add_op(Connect(cell3.graph, [input_nodes[0], input_nodes[1]], cnode))
-    cnode.add_op(Connect(cell3.graph, [input_nodes[1], input_nodes[2]], cnode))
-    cnode.add_op(Connect(cell3.graph, [input_nodes[0], input_nodes[2]], cnode))
+    cnode.add_op(Connect(cell2.graph, nullNode, cnode)) # SAME
+    cnode.add_op(Connect(cell2.graph, input_nodes[0], cnode))
+    cnode.add_op(Connect(cell2.graph, input_nodes[1], cnode))
+    cnode.add_op(Connect(cell2.graph, input_nodes[2], cnode))
+    cnode.add_op(Connect(cell2.graph, cell1.output, cnode))
+    cnode.add_op(Connect(cell2.graph, input_nodes, cnode))
+    cnode.add_op(Connect(cell2.graph, [input_nodes[0], input_nodes[1]], cnode))
+    cnode.add_op(Connect(cell2.graph, [input_nodes[1], input_nodes[2]], cnode))
+    cnode.add_op(Connect(cell2.graph, [input_nodes[0], input_nodes[2]], cnode))
+    block2 = Block()
+    block2.add_node(cnode)
+    cell2.add_block(block2)
+    set_cell_output_add(cell2)
+    network.add_cell(cell2)
 
-    block = Block()
-    block.add_node(cnode)
-    cell3.add_block(block)
-
+    # CELL 3
+    cell3 = Cell([cell2.output])
+    block1 = create_mlp_block(cell3, cell2.output)
+    cell3.add_block(block1)
+    set_cell_output_add(cell3)
     network.add_cell(cell3)
+
 
     return network
 
@@ -193,19 +187,19 @@ def test_create_structure():
     structure = create_structure(shapes, (1,))
     assert type(structure) is KerasStructure
 
-    # ops = [random() for i in range(structure.num_nodes)]
-    ops = [
-            0.15384615384615385,
-            0.0,
-            0.0,
-            0.07692307692307693,
-            0.0,
-            0.5384615384615384,
-            0.0,
-            0.5384615384615384,
-            0.5384615384615384,
-            0.5384615384615384
-        ]
+    ops = [random() for i in range(structure.num_nodes)]
+    # ops = [
+    #         0.07692307692307693,
+    #         0.5384615384615384,
+    #         0.07692307692307693,
+    #         0.07692307692307693,
+    #         0.07692307692307693,
+    #         0.5384615384615384,
+    #         0.5384615384615384,
+    #         0.07692307692307693,
+    #         0.5384615384615384,
+    #         0.0
+    #     ]
     print('num ops: ', len(ops))
     structure.set_ops(ops)
     structure.draw_graphviz('graph_candle_mlp_5.dot')
