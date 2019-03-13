@@ -25,10 +25,10 @@ def create_mlp_node(node):
     node.add_op(Dense(1000, tf.nn.sigmoid))
     node.add_op(Dropout(0.2))
 
-def set_cell_output_add(cell):
-    addNode = ConstantNode(name='Merging')
-    addNode.set_op(AddByPadding(cell.graph, addNode, cell.get_blocks_output()))
-    cell.set_outputs(node=addNode)
+# def set_cell_output_add(cell):
+#     addNode = ConstantNode(name='Merging')
+#     addNode.set_op(AddByPadding(cell.graph, addNode, cell.get_blocks_output()))
+#     cell.set_outputs(node=addNode)
 
 def create_cell_1(input_nodes):
     """Create a cell with convolution.
@@ -90,7 +90,8 @@ def create_cell_1(input_nodes):
     cell.add_block(block2)
     cell.add_block(block3)
 
-    set_cell_output_add(cell)
+    # set_cell_output_add(cell)
+    cell.set_outputs()
     return cell
 
 def create_mlp_block(cell, input_node):
@@ -116,27 +117,9 @@ def create_mlp_block(cell, input_node):
         block.add_edge(n2, n3)
         return block
 
-def create_cell_2(input_nodes):
-    """Create a cell with convolution.
-
-    Args:
-        input_nodes (list(Node)): a list of input_nodes for this cell.
-
-    Returns:
-        Cell: the corresponding cell.
-    """
-    cell = Cell(input_nodes)
-
-    block1 = create_mlp_block(cell, input_nodes[0])
-
-    cell.add_block(block1)
-
-    cell.set_outputs()
-    return cell
-
 def create_structure(input_shape=[(2,), (2,), (2,)], output_shape=(1,), *args, **kwargs):
 
-    network = KerasStructure(input_shape, output_shape, output_op=AddByPadding)
+    network = KerasStructure(input_shape, output_shape) #, output_op=AddByPadding)
     input_nodes = network.input_nodes
 
     # CELL 1
@@ -163,14 +146,16 @@ def create_structure(input_shape=[(2,), (2,), (2,)], output_shape=(1,), *args, *
     block2 = Block()
     block2.add_node(cnode)
     cell2.add_block(block2)
-    set_cell_output_add(cell2)
+    # set_cell_output_add(cell2)
+    cell2.set_outputs()
     network.add_cell(cell2)
 
     # CELL 3
     cell3 = Cell([cell2.output])
     block1 = create_mlp_block(cell3, cell2.output)
     cell3.add_block(block1)
-    set_cell_output_add(cell3)
+    # set_cell_output_add(cell3)
+    cell3.set_outputs()
     network.add_cell(cell3)
 
 
