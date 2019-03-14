@@ -27,19 +27,19 @@ def create_cell_1(input_nodes):
             # REG_L1 = 1.
             # REG_L2 = 1.
 
-            vnode.add_op(Identity())
-            vnode.add_op(Dense(100, tf.nn.relu))
-            vnode.add_op(Dense(100, tf.nn.tanh))
-            vnode.add_op(Dense(100, tf.nn.sigmoid))
-            vnode.add_op(Dropout(0.05))
-            vnode.add_op(Dense(500, tf.nn.relu))
-            vnode.add_op(Dense(500, tf.nn.tanh))
-            vnode.add_op(Dense(500, tf.nn.sigmoid))
-            vnode.add_op(Dropout(0.1))
+            # vnode.add_op(Identity())
+            # vnode.add_op(Dense(100, tf.nn.relu))
+            # vnode.add_op(Dense(100, tf.nn.tanh))
+            # vnode.add_op(Dense(100, tf.nn.sigmoid))
+            # vnode.add_op(Dropout(0.05))
+            # vnode.add_op(Dense(500, tf.nn.relu))
+            # vnode.add_op(Dense(500, tf.nn.tanh))
+            # vnode.add_op(Dense(500, tf.nn.sigmoid))
+            # vnode.add_op(Dropout(0.1))
             vnode.add_op(Dense(1000, tf.nn.relu))
-            vnode.add_op(Dense(1000, tf.nn.tanh))
-            vnode.add_op(Dense(1000, tf.nn.sigmoid))
-            vnode.add_op(Dropout(0.2))
+            # vnode.add_op(Dense(1000, tf.nn.tanh))
+            # vnode.add_op(Dense(1000, tf.nn.sigmoid))
+            # vnode.add_op(Dropout(0.2))
 
         # first node of block
         n1 = VariableNode('N1')
@@ -113,19 +113,19 @@ def create_cell_2(input_nodes):
             # REG_L1 = 1.
 
             n = VariableNode(name)
-            n.add_op(Identity())
-            n.add_op(Dense(100, tf.nn.relu))
-            n.add_op(Dense(100, tf.nn.tanh))
-            n.add_op(Dense(100, tf.nn.sigmoid))
-            n.add_op(Dropout(0.05))
-            n.add_op(Dense(500, tf.nn.relu))
-            n.add_op(Dense(500, tf.nn.tanh))
-            n.add_op(Dense(500, tf.nn.sigmoid))
-            n.add_op(Dropout(0.1))
+            # n.add_op(Identity())
+            # n.add_op(Dense(100, tf.nn.relu))
+            # n.add_op(Dense(100, tf.nn.tanh))
+            # n.add_op(Dense(100, tf.nn.sigmoid))
+            # n.add_op(Dropout(0.05))
+            # n.add_op(Dense(500, tf.nn.relu))
+            # n.add_op(Dense(500, tf.nn.tanh))
+            # n.add_op(Dense(500, tf.nn.sigmoid))
+            # n.add_op(Dropout(0.1))
             n.add_op(Dense(1000, tf.nn.relu))
-            n.add_op(Dense(1000, tf.nn.tanh))
-            n.add_op(Dense(1000, tf.nn.sigmoid))
-            n.add_op(Dropout(0.2))
+            # n.add_op(Dense(1000, tf.nn.tanh))
+            # n.add_op(Dense(1000, tf.nn.sigmoid))
+            # n.add_op(Dropout(0.2))
 
             return n
 
