@@ -1,6 +1,6 @@
 from deephyper.benchmark import Problem
 from candlepb.Combo.combo_baseline_keras2 import load_data_deephyper_gen
-from candlepb.exp.candle_conv_mlp_2 import create_structure
+from candlepb.Combo.models.candle_conv_mlp_2 import create_structure
 # from deephyper.search.nas.model.preprocessing import minmaxstdscaler
 
 # We create our Problem object with the Problem class, you don't have to name your Problem object 'Problem' it can be any name you want. You can also define different problems in the same module.
