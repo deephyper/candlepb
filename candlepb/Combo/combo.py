@@ -78,9 +78,14 @@ additional_definitions = [
     'help':"cell line IDs to exclude"},
 {'name':'exclude_drugs', 'nargs':'+',
     'default':[],
-    'help':"drug line IDs to exclude"}
+    'help':"drug line IDs to exclude"},
+{'name':'fname', 'nargs':'+',
+    'default':[],
+    'help':"none"},
+{'name':'id', 'nargs':'+',
+    'default':[],
+    'help':"none"},       
 ]
-
 
 required = [ 'activation', 'batch_size', 'dense', 'dense_feature_layers', 'drop',
              'epochs', 'learning_rate', 'loss', 'optimizer', 'residual', 'rng_seed',

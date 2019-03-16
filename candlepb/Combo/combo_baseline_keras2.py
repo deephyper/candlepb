@@ -823,7 +823,7 @@ def run_model(config):
     t2 = time.time()
     t_model_create = t2 - t1
     print('Time model creation: ', t_model_create)
-
+    import sys
     t1 = time.time()
     params = initialize_parameters()
     args = Struct(**params)

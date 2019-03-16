@@ -43,6 +43,11 @@ import candlepb.Combo.combo as combo
 import candlepb.Combo.NCI60 as NCI60
 import candlepb.common.candle_keras as candle
 
+from argparse import ArgumentParser
+import sys
+import json
+
+
 logger = logging.getLogger(__name__)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -565,6 +570,7 @@ class Struct:
 
 def run(params):
     args = Struct(**params)
+    print(args)
     set_seed(args.rng_seed)
     ext = extension_from_parameters(args)
     verify_path(args.save)
@@ -825,8 +831,10 @@ def run_model(config):
     print('Time model creation: ', t_model_create)
 
     t1 = time.time()
+    
     params = initialize_parameters()
     args = Struct(**params)
+    print(args)
     set_seed(args.rng_seed)
 
     optimizer = optimizers.deserialize({'class_name': args.optimizer, 'config': {}})
@@ -1085,53 +1093,22 @@ def load_data_deephyper_gen(prop=0.1):
     return res
 
 if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument("-id", "--id", dest="id",
+                        help="which arch to use")
+    parser.add_argument("-f", "--fname", dest="fname",
+                        help="which file to use")                        
+    cmd_args = vars(parser.parse_args())
+    archid = int(cmd_args['id'])
+    file_name = cmd_args['fname']
+    with open(file_name) as json_file:  
+        data = json.load(json_file)
+    arch_seq = data['arch_seq'][archid]
+    print(arch_seq)
     from candlepb.Combo.problem_exp6 import Problem
     config = Problem.space
-    config['arch_seq'] = [
-            0.6153846153846154,
-            0.38461538461538464,
-            0.07692307692307693,
-            0.07692307692307693,
-            0.46153846153846156,
-            0.38461538461538464,
-            0.23076923076923078,
-            0.07692307692307693,
-            0.38461538461538464,
-            0.07692307692307693,
-            0.07692307692307693,
-            0.38461538461538464,
-            0.8461538461538461,
-            0.07692307692307693,
-            0.38461538461538464,
-            0.38461538461538464,
-            0.38461538461538464,
-            0.38461538461538464,
-            0.8461538461538461,
-            0.07692307692307693,
-            0.07692307692307693,
-            0.9230769230769231,
-            0.38461538461538464,
-            0.07692307692307693,
-            0.9230769230769231,
-            0.7692307692307693,
-            0.6153846153846154,
-            0.8461538461538461,
-            0.6923076923076923,
-            0.07692307692307693,
-            0.7692307692307693,
-            0.38461538461538464,
-            0.07692307692307693,
-            0.07692307692307693,
-            0.38461538461538464,
-            0.38461538461538464,
-            0.07692307692307693,
-            0.38461538461538464,
-            0.38461538461538464,
-            0.6153846153846154,
-            0.07692307692307693
-        ]
+    config['arch_seq'] = arch_seq 
     config['hyperparameters']['batch_size'] = 256
     config['hyperparameters']['num_epochs'] = 20
     run_model(config)
-
 

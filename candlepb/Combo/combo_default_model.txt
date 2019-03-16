@@ -26,6 +26,7 @@ save='save/combo'
 gen=False
 use_combo_score=False
 verbose = False
+f = False
 
 [Monitor_Params]
 solr_root=''
