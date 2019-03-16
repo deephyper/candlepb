@@ -607,6 +607,7 @@ def run(params):
     print('Model PNG has been created successfuly!')
 
     model.summary()
+    #sys.exit(0)
     # plot_model(model, to_file=prefix+'.model.png', show_shapes=True)
 
     if args.cp:
@@ -816,7 +817,7 @@ def run_model(config):
     arch_seq = config['arch_seq']
 
     print(f'actions list: {arch_seq}')
-
+    #sys.exit(0)
     structure.set_ops(arch_seq)
     structure.draw_graphviz('model_global_combo.dot')
 
@@ -826,6 +827,8 @@ def run_model(config):
     plot_model(model, 'model_global_combo.png', show_shapes=True)
 
     model.summary()
+    #sys.exit(0)
+
     t2 = time.time()
     t_model_create = t2 - t1
     print('Time model creation: ', t_model_create)
@@ -1105,7 +1108,7 @@ if __name__ == '__main__':
         data = json.load(json_file)
     arch_seq = data['arch_seq'][archid]
     print(arch_seq)
-    from candlepb.Combo.problem_exp6 import Problem
+    from candlepb.Combo.problem_exp10 import Problem
     config = Problem.space
     config['arch_seq'] = arch_seq 
     config['hyperparameters']['batch_size'] = 256
