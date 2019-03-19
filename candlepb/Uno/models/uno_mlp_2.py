@@ -184,34 +184,36 @@ def create_structure(input_shape=[(2,) for _ in range(8)], output_shape=(1,), nu
     cell1 = create_cell_1(input_nodes)
     network.add_cell(cell1)
 
-    # # CELL Middle
-    # inputs_skipco = [input_nodes, input_nodes[0], input_nodes[1], input_nodes[2], cell1.output]
+    # CELL Middle
+    inputs_skipco = [input_nodes]
+    inputs_skipco.extend(input_nodes)
+    inputs_skipco.append(cell1.output)
     pred_cell = cell1
-    # n = num_cell
-    # for i in range(n):
-    #     cell_i = Cell(input_nodes + [cell1.output])
+    n = num_cell
+    for i in range(n):
+        cell_i = Cell(input_nodes + [cell1.output])
 
-    #     block1 = create_mlp_block(cell_i, pred_cell.output)
-    #     cell_i.add_block(block1)
+        block1 = create_mlp_block(cell_i, pred_cell.output)
+        cell_i.add_block(block1)
 
-    #     cnode = VariableNode(name='SkipCo')
-    #     nullNode = ConstantNode(op=Tensor([]), name='None')
-    #     cnode.add_op(Connect(cell_i.graph, nullNode, cnode)) # SAME
+        cnode = VariableNode(name='SkipCo')
+        nullNode = ConstantNode(op=Tensor([]), name='None')
+        cnode.add_op(Connect(cell_i.graph, nullNode, cnode)) # SAME
 
-    #     for inpt in inputs_skipco:
-    #         cnode.add_op(Connect(cell_i.graph, inpt, cnode))
+        for inpt in inputs_skipco:
+            cnode.add_op(Connect(cell_i.graph, inpt, cnode))
 
-    #     block2 = Block()
-    #     block2.add_node(cnode)
-    #     cell_i.add_block(block2)
-    #     # set_cell_output_add(cell2)
-    #     cell_i.set_outputs()
+        block2 = Block()
+        block2.add_node(cnode)
+        cell_i.add_block(block2)
+        # set_cell_output_add(cell2)
+        cell_i.set_outputs()
 
-    #     network.add_cell(cell_i)
+        network.add_cell(cell_i)
 
-    #     # prep. for next iter
-    #     inputs_skipco.append(cell_i.output)
-    #     pred_cell = cell_i
+        # prep. for next iter
+        inputs_skipco.append(cell_i.output)
+        pred_cell = cell_i
 
 
     # CELL LAST
