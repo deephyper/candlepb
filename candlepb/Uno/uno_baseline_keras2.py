@@ -300,8 +300,9 @@ class Struct:
 
 from deephyper.benchmark.util import numpy_dict_cache
 
-@numpy_dict_cache('/dev/shm/uno_data.npz')
+# @numpy_dict_cache('/dev/shm/uno_data.npz')
 #@numpy_dict_cache('/Users/romainegele/Documents/Argonne/trash/uno_data.npz')
+@numpy_dict_cache('/projects/datascience/regele/data-tmp/uno_data.npz')
 def load_data1():
 
     params = initialize_parameters()
@@ -379,9 +380,13 @@ def load_data1():
     }
     return data
 
+@numpy_dict_cache('/dev/shm/uno_data.npz')
+def load_data2():
+    return load_data1()
+
 def load_data_proxy():
 
-    data = load_data1()
+    data = load_data2()
     x_train_list = [data[f'x_train_{i}'] for i in range(8)]
     y_train = data['y_train']
     x_val_list= [data[f'x_val_{i}'] for i in range(8)]
@@ -452,7 +457,8 @@ def run_model(config):
         return -1.0
 
 if __name__ == '__main__':
-    from candlepb.Uno.problems.problem_exp1 import Problem
-    config = Problem.space
-    config['arch_seq'] = [0.32156287383210125, 0.2878669634125548, 0.19252517724700702, 0.7545455557323973, 0.6525798891902204, 0.6158244189400006, 0.054357129459733144, 0.13022159455911952, 0.42652013730118765, 0.47423623333767395, 0.12985790440175204, 0.7204708399366111]
-    run_model(config)
+    # from candlepb.Uno.problems.problem_exp1 import Problem
+    # config = Problem.space
+    # config['arch_seq'] = [0.32156287383210125, 0.2878669634125548, 0.19252517724700702, 0.7545455557323973, 0.6525798891902204, 0.6158244189400006, 0.054357129459733144, 0.13022159455911952, 0.42652013730118765, 0.47423623333767395, 0.12985790440175204, 0.7204708399366111]
+    # run_model(config)
+    load_data1()
