@@ -12,6 +12,7 @@ import threading
 import numpy as np
 import pandas as pd
 
+import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import backend as K
 from tensorflow.keras import optimizers
@@ -42,6 +43,9 @@ logger = logging.getLogger(__name__)
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
+session_conf = tf.ConfigProto(intra_op_parallelism_threads=62)
+sess = tf.Session(config=session_conf)
+K.set_session(sess)
 
 def set_seed(seed):
     os.environ['PYTHONHASHSEED'] = '0'
@@ -296,8 +300,8 @@ class Struct:
 
 from deephyper.benchmark.util import numpy_dict_cache
 
-# @numpy_dict_cache('/dev/shm/combo_data.npz')
-@numpy_dict_cache('/Users/romainegele/Documents/Argonne/trash/uno_data.npz')
+@numpy_dict_cache('/dev/shm/uno_data.npz')
+#@numpy_dict_cache('/Users/romainegele/Documents/Argonne/trash/uno_data.npz')
 def load_data1():
 
     params = initialize_parameters()
@@ -396,17 +400,12 @@ def run_model(config):
     config['create_structure']['func'] = util.load_attr_from(
          config['create_structure']['func'])
 
-    input_shape =  [
-        (1, ),
-        (1, ),
-        (9, ),
-        (17750, ),
-        (5270, ),
-        (2048, ),
-        (5270, ),
-        (2048, )
-    ]
+    (x_train_list, y_train), (x_val_list, y_val) = load_data_proxy()
+
+    input_shape = [np.shape(a)[1:] for a in x_train_list]
+    print('input_shape: ', input_shape)
     output_shape = (1, )
+    print('output_shape: ', output_shape)
 
     cs_kwargs = config['create_structure'].get('kwargs')
     if cs_kwargs is None:
@@ -419,16 +418,15 @@ def run_model(config):
     print(f'actions list: {arch_seq}')
 
     structure.set_ops(arch_seq)
-    structure.draw_graphviz('model_global_uno.dot')
+    #structure.draw_graphviz('model_global_uno.dot')
 
     model = structure.create_model()
 
-    from keras.utils import plot_model
-    plot_model(model, 'model_global_combo.png', show_shapes=True)
+    #from keras.utils import plot_model
+    #plot_model(model, 'model_global_combo.png', show_shapes=True)
 
     model.summary()
 
-    (x_train_list, y_train), (x_val_list, y_val) = load_data_proxy()
 
     optimizer = optimizers.deserialize({'class_name': 'adam', 'config': {}})
 
