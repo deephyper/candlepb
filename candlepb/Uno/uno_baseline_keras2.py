@@ -12,14 +12,14 @@ import threading
 import numpy as np
 import pandas as pd
 
-import keras
-from keras import backend as K
-from keras import optimizers
-from keras.models import Model
-from keras.layers import Input, Dense, Dropout
-from keras.callbacks import Callback, ModelCheckpoint, ReduceLROnPlateau, LearningRateScheduler, TensorBoard
-from keras.utils import get_custom_objects
-from keras.utils.vis_utils import plot_model
+from tensorflow import keras
+from tensorflow.keras import backend as K
+from tensorflow.keras import optimizers
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, Dense, Dropout
+from tensorflow.keras.callbacks import Callback, ModelCheckpoint, ReduceLROnPlateau, LearningRateScheduler, TensorBoard
+from tensorflow.keras.utils import get_custom_objects
+from tensorflow.keras.utils import plot_model
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 from sklearn.model_selection import KFold, StratifiedKFold, GroupKFold
 from scipy.stats.stats import pearsonr
@@ -34,6 +34,8 @@ import candlepb.common.candle_keras as candle
 
 import candlepb.Uno.uno_data as uno_data
 from candlepb.Uno.uno_data import CombinedDataLoader, CombinedDataGenerator
+
+from deephyper.contrib.callbacks import StopIfUnfeasible
 
 
 logger = logging.getLogger(__name__)
@@ -292,8 +294,13 @@ class Struct:
     def __init__(self, **entries):
         self.__dict__.update(entries)
 
+from deephyper.benchmark.util import numpy_dict_cache
 
-def load_data1(params):
+# @numpy_dict_cache('/dev/shm/combo_data.npz')
+@numpy_dict_cache('/Users/romainegele/Documents/Argonne/trash/uno_data.npz')
+def load_data1():
+
+    params = initialize_parameters()
     args = Struct(**params)
     set_seed(args.rng_seed)
     ext = extension_from_parameters(args)
@@ -327,116 +334,127 @@ def load_data1(params):
     print('-- partition data ok')
     train_gen = CombinedDataGenerator(loader, batch_size=args.batch_size, shuffle=args.shuffle)
     val_gen = CombinedDataGenerator(loader, partition='val', batch_size=args.batch_size, shuffle=args.shuffle)
-    print('-- generator ok')
-    print('-- train_gen.size: ', train_gen.size)
-    print('-- val_gen.size: ', val_gen.size)
-    print('-- training')
-    # x_list, y = train_gen.flow()
-    e = train_gen.flow().__next__()
-    print('type e: ', type(e), ':: len e: ', len(e))
-    x_list, y = e
-    for i, x in enumerate(x_list):
-        print(f'-- i={i}, x.shape: {np.shape(x)}')
-    print('-- y.shape: {np.shape(y)}')
 
-    print('-- validation')
-    x_list, y = val_gen.flow()
-    for i, x in enumerate(x_list):
-        print(f'-- i={i}, x.shape: {np.shape(x)}')
-    print('-- y.shape: {np.shape(y)}')
-    # x_train_list, y_train = train_gen.get_slice(size=train_gen.size, dataframe=True, single=args.single)
-    # print('-- train slice ok')
-    # x_val_list, y_val = val_gen.get_slice(size=val_gen.size, dataframe=True, single=args.single)
-    # print('-- validation slice ok')
-
-    # return (x_train_list, y_train), (x_val_list, y_val)
-
-
-HERE = os.path.dirname(os.path.abspath(__file__))
-
-def load_data_deephyper(prop=0.1):
-
-    fnames = [f'x_train-{prop}', f'y_train-{prop}', f'x_valid-{prop}', f'y_valid-{prop}']
-    dir_path = "{}/DATA".format(HERE)
-    format_path = dir_path + "/data_cached_{}.npy"
-
-    if not os.path.exists(dir_path):
-        try:
-            os.makedirs(dir_path)
-        except:
-            pass
-
-    if not os.path.exists(format_path.format(fnames[1])):
-        print('-- creating cached files --')
-        gParameters = initialize_parameters()
-        (x_train_list, y_train), (x_val_list, y_val) = load_data1(gParameters)
-        print('-- load_data1 returned --')
-
-        y_train = np.expand_dims(y_train, axis=1)
-        y_val = np.expand_dims(y_val, axis=1)
-        cursor_train = int(len(y_train) * prop)
-        cursor_valid = int(len(y_val) * prop)
-
-        for i, x in enumerate(x_train_list):
-            x_train_list[i] = x[:cursor_train]
-        y_train = y_train[:cursor_train]
-
-        for i, x in enumerate(x_val_list):
-            x_val_list[i] = x[:cursor_valid, :]
-        y_val = y_val[:cursor_valid]
-
-        fdata = [x_train_list, y_train, x_val_list, y_val]
-
-        for i in range(len(fnames)):
-            if "x" in fnames[i]:
-                for j in range(len(fdata[i])):
-                    fname = fnames[i]+f"-p{j}"
-                    with open(format_path.format(fname), "wb") as f:
-                        np.save(f, fdata[i][j])
-            else:
-                fname = fnames[i]
-                with open(format_path.format(fname), "wb") as f:
-                    np.save(f, fdata[i])
-        # df: dataframe, pandas
-
-    print('-- reading .npy files')
-    fls = os.listdir(dir_path)
-    fls.sort()
-    fdata = []
-    x_train_list = None
-    x_val_list = None
-    y_train = None
-    y_val = None
-    for i in range(len(fnames)):
-        if "x" in fnames[i]:
-            l = list()
-            for fname in fls:
-                if fnames[i] in fname:
-                    with open(dir_path+'/'+fname, "rb") as f:
-                        l.append(np.load(f))
-            if "val" in fnames[i]:
-                x_val_list = l
-            else:
-                x_train_list = l
-        else:
-            with open(format_path.format(fnames[i]), "rb") as f:
-                if "val" in fnames[i]:
-                    y_val = np.load(f)
-                else:
-                    y_train = np.load(f)
-
-    print('x_train shapes:')
+    prop = 0.01
+    size = int(train_gen.size * prop)
+    x_train_list, y_train = train_gen.get_slice(size=size, dataframe=False, single=args.single)
+    print('-- get_slice train')
     for i, x in enumerate(x_train_list):
-        print('i=', i, ' : shape -> ', x.shape)
-    print('y_train shape:', y_train.shape)
+        print(f'-- i={i}, x.shape: {np.shape(x)}')
+    print('-- y.shape: ', np.shape(y_train))
+    print('-- train slice ok')
 
-    print('x_val shapes:')
+    prop = 0.01
+    size = int(val_gen.size * prop)
+    print('-- get_slice valid')
+    x_val_list, y_val = val_gen.get_slice(size=size, dataframe=False, single=args.single)
     for i, x in enumerate(x_val_list):
-        print('i=', i, ' : shape -> ', x.shape)
-    print('y_val shape:', y_val.shape)
+        print(f'-- i={i}, x.shape: {np.shape(x)}')
+    print('-- y.shape: ', np.shape(y_val))
+    print('-- validation slice ok')
+
+    data = {
+        'x_train_0': x_train_list[0],
+        'x_train_1': x_train_list[1],
+        'x_train_2': x_train_list[2],
+        'x_train_3': x_train_list[3],
+        'x_train_4': x_train_list[4],
+        'x_train_5': x_train_list[5],
+        'x_train_6': x_train_list[6],
+        'x_train_7': x_train_list[7],
+        'y_train': y_train,
+        'x_val_0': x_val_list[0],
+        'x_val_1': x_val_list[1],
+        'x_val_2': x_val_list[2],
+        'x_val_3': x_val_list[3],
+        'x_val_4': x_val_list[4],
+        'x_val_5': x_val_list[5],
+        'x_val_6': x_val_list[6],
+        'x_val_7': x_val_list[7],
+        'y_val': y_val,
+    }
+    return data
+
+def load_data_proxy():
+
+    data = load_data1()
+    x_train_list = [data[f'x_train_{i}'] for i in range(8)]
+    y_train = data['y_train']
+    x_val_list= [data[f'x_val_{i}'] for i in range(8)]
+    y_val = data['y_val']
 
     return (x_train_list, y_train), (x_val_list, y_val)
 
+
+from deephyper.search import util
+
+def run_model(config):
+
+    num_epochs = config['hyperparameters']['num_epochs']
+    batch_size = config['hyperparameters']['batch_size']
+
+    config['create_structure']['func'] = util.load_attr_from(
+         config['create_structure']['func'])
+
+    input_shape =  [
+        (1, ),
+        (1, ),
+        (9, ),
+        (17750, ),
+        (5270, ),
+        (2048, ),
+        (5270, ),
+        (2048, )
+    ]
+    output_shape = (1, )
+
+    cs_kwargs = config['create_structure'].get('kwargs')
+    if cs_kwargs is None:
+        structure = config['create_structure']['func'](input_shape, output_shape)
+    else:
+        structure = config['create_structure']['func'](input_shape, output_shape, **cs_kwargs)
+
+    arch_seq = config['arch_seq']
+
+    print(f'actions list: {arch_seq}')
+
+    structure.set_ops(arch_seq)
+    structure.draw_graphviz('model_global_uno.dot')
+
+    model = structure.create_model()
+
+    from keras.utils import plot_model
+    plot_model(model, 'model_global_combo.png', show_shapes=True)
+
+    model.summary()
+
+    (x_train_list, y_train), (x_val_list, y_val) = load_data_proxy()
+
+    optimizer = optimizers.deserialize({'class_name': 'adam', 'config': {}})
+
+    model.compile(loss='mse', optimizer=optimizer, metrics=[mae, r2])
+
+    stop_if_unfeasible = StopIfUnfeasible(time_limit=900)
+
+    history = model.fit(x_train_list, y_train,
+                                batch_size=batch_size,
+                                epochs=num_epochs,
+                                callbacks=[stop_if_unfeasible],
+                                validation_data=(x_val_list, y_val))
+
+    print('avr_batch_timing :', stop_if_unfeasible.avr_batch_time)
+    print('avr_timing: ', stop_if_unfeasible.estimate_training_time)
+    print('stopped: ', stop_if_unfeasible.stopped)
+
+    print(history.history)
+
+    try:
+        return history.history['val_r2'][0]
+    except:
+        return -1.0
+
 if __name__ == '__main__':
-    gParameters = initialize_parameters()
-    load_data1(gParameters)
+    from candlepb.Uno.problems.problem_exp1 import Problem
+    config = Problem.space
+    config['arch_seq'] = [0.32156287383210125, 0.2878669634125548, 0.19252517724700702, 0.7545455557323973, 0.6525798891902204, 0.6158244189400006, 0.054357129459733144, 0.13022159455911952, 0.42652013730118765, 0.47423623333767395, 0.12985790440175204, 0.7204708399366111]
+    run_model(config)

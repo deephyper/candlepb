@@ -753,7 +753,7 @@ def log_evaluation(metric_outputs, description='Comparing y_true and y_pred:'):
 from deephyper.benchmark.util import numpy_dict_cache
 
 # @numpy_dict_cache('/Users/romainegele/Documents/Argonne/trash/combo_data.npz')
-@numpy_dict_cache('/dev/shm/combo_data.npz')
+# @numpy_dict_cache('/dev/shm/combo_data.npz')
 def combo_ld_numpy(args):
 
     # CANDLE
@@ -843,6 +843,7 @@ def run_model(config):
     y_train = data['y_train']
     x_val_list = [data['x_val_0'], data['x_val_1'], data['x_val_2']]
     y_val = data['y_val']
+    print('y_val shape:  ', np.shape(y_val))
     t2 = time.time()
     t_data_loading = t2 - t1
     print('Time data loading: ', t_data_loading)
