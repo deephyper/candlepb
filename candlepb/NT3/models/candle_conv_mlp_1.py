@@ -26,8 +26,14 @@ def create_cell_conv(input_nodes):
     n1 = VariableNode('N1')
     cell.graph.add_edge(input_nodes[0], n1) # fixed input connection
     n1.add_op(Identity())
+    n1.add_op(Conv1D(filter_size=2, num_filters=8))
     n1.add_op(Conv1D(filter_size=3, num_filters=8))
+    n1.add_op(Conv1D(filter_size=4, num_filters=8))
     n1.add_op(Conv1D(filter_size=5, num_filters=8))
+    n1.add_op(Conv1D(filter_size=6, num_filters=8))
+    n1.add_op(Conv1D(filter_size=7, num_filters=8))
+    n1.add_op(Conv1D(filter_size=8, num_filters=8))
+    n1.add_op(Conv1D(filter_size=9, num_filters=8))
     n1.add_op(Conv1D(filter_size=10, num_filters=8))
 
     n2 = VariableNode('N2')
@@ -38,8 +44,14 @@ def create_cell_conv(input_nodes):
 
     n3 = VariableNode('N3')
     n3.add_op(Identity())
+    n3.add_op(MaxPooling1D(pool_size=2, padding='same'))
     n3.add_op(MaxPooling1D(pool_size=3, padding='same'))
+    n3.add_op(MaxPooling1D(pool_size=4, padding='same'))
     n3.add_op(MaxPooling1D(pool_size=5, padding='same'))
+    n3.add_op(MaxPooling1D(pool_size=6, padding='same'))
+    n3.add_op(MaxPooling1D(pool_size=7, padding='same'))
+    n3.add_op(MaxPooling1D(pool_size=8, padding='same'))
+    n3.add_op(MaxPooling1D(pool_size=9, padding='same'))
     n3.add_op(MaxPooling1D(pool_size=10, padding='same'))
 
     block = Block()
@@ -72,9 +84,12 @@ def create_cell_mlp(input_nodes):
     n2 = VariableNode('N2')
     n2.add_op(Identity())
     n2.add_op(Dense(units=10))
+    n2.add_op(Dense(units=50))
     n2.add_op(Dense(units=100))
     n2.add_op(Dense(units=200))
+    n2.add_op(Dense(units=250))
     n2.add_op(Dense(units=500))
+    n2.add_op(Dense(units=750))
     n2.add_op(Dense(units=1000))
 
     n3 = VariableNode('N3')
@@ -90,6 +105,7 @@ def create_cell_mlp(input_nodes):
     n4.add_op(Dropout(rate=0.3))
     n4.add_op(Dropout(rate=0.2))
     n4.add_op(Dropout(rate=0.1))
+    n4.add_op(Dropout(rate=0.05))
 
     block = Block()
     block.add_node(n1)
