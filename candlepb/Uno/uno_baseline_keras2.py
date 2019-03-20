@@ -37,15 +37,13 @@ import candlepb.Uno.uno_data as uno_data
 from candlepb.Uno.uno_data import CombinedDataLoader, CombinedDataGenerator
 
 from deephyper.contrib.callbacks import StopIfUnfeasible
-
+from deephyper.contrib.perf.theta import set_perf_settings_for_keras
 
 logger = logging.getLogger(__name__)
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-session_conf = tf.ConfigProto(intra_op_parallelism_threads=62)
-sess = tf.Session(config=session_conf)
-K.set_session(sess)
+set_perf_settings_for_keras()
 
 def set_seed(seed):
     os.environ['PYTHONHASHSEED'] = '0'
@@ -457,8 +455,8 @@ def run_model(config):
         return -1.0
 
 if __name__ == '__main__':
-    # from candlepb.Uno.problems.problem_exp1 import Problem
-    # config = Problem.space
-    # config['arch_seq'] = [0.32156287383210125, 0.2878669634125548, 0.19252517724700702, 0.7545455557323973, 0.6525798891902204, 0.6158244189400006, 0.054357129459733144, 0.13022159455911952, 0.42652013730118765, 0.47423623333767395, 0.12985790440175204, 0.7204708399366111]
-    # run_model(config)
-    load_data1()
+    from candlepb.Uno.problems.problem_exp1 import Problem
+    config = Problem.space
+    config['arch_seq'] = [0.32156287383210125, 0.2878669634125548, 0.19252517724700702, 0.7545455557323973, 0.6525798891902204, 0.6158244189400006, 0.054357129459733144, 0.13022159455911952, 0.42652013730118765, 0.47423623333767395, 0.12985790440175204, 0.7204708399366111]
+    run_model(config)
+    #load_data1()

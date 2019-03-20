@@ -43,6 +43,10 @@ import candlepb.Combo.combo as combo
 import candlepb.Combo.NCI60 as NCI60
 import candlepb.common.candle_keras as candle
 
+from deephyper.contrib.perf.theta import set_perf_settings_for_keras
+
+set_perf_settings_for_keras()
+
 logger = logging.getLogger(__name__)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
