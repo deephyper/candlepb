@@ -1094,7 +1094,19 @@ def download():
     args = Struct(**params)
     set_seed(args.rng_seed)
 
-    data = combo_ld_numpy(args)
+    loader = ComboDataLoader(seed=args.rng_seed,
+                             val_split=args.validation_split,
+                             cell_features=args.cell_features,
+                             drug_features=args.drug_features,
+                             response_url=args.response_url,
+                             use_landmark_genes=args.use_landmark_genes,
+                             preprocess_rnaseq=args.preprocess_rnaseq,
+                             exclude_cells=args.exclude_cells,
+                             exclude_drugs=args.exclude_drugs,
+                             use_combo_score=args.use_combo_score,
+                             cv_partition=args.cv_partition, cv=args.cv)
+
+    x_train_list, y_train, x_val_list, y_val, df_train, df_val = loader.load_data()
 
 if __name__ == '__main__':
     download()
