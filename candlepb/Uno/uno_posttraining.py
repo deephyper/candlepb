@@ -384,10 +384,10 @@ def run_model(config):
     model.compile(loss='mse', optimizer=optimizer, metrics=[mae, r2])
 
     history = model.fit_generator(train_gen.flow(single=False),
-                                train_gen.steps,
+                                int(train_gen.steps),
                                 epochs=num_epochs,
                                 validation_data=val_gen.flow(single=False),
-                                validation_steps=val_gen.steps)
+                                validation_steps=int(val_gen.steps))
 
     print(history.history)
 
