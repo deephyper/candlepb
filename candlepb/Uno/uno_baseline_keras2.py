@@ -6,21 +6,20 @@ import argparse
 import collections
 import logging
 import os
+import sys
 import random
 import threading
 
 import numpy as np
 import pandas as pd
 
-import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import backend as K
 from tensorflow.keras import optimizers
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense, Dropout
 from tensorflow.keras.callbacks import Callback, ModelCheckpoint, ReduceLROnPlateau, LearningRateScheduler, TensorBoard
-from tensorflow.keras.utils import get_custom_objects
-from tensorflow.keras.utils import plot_model
+from tensorflow.keras.utils import get_custom_objects, plot_model
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 from sklearn.model_selection import KFold, StratifiedKFold, GroupKFold
 from scipy.stats.stats import pearsonr
@@ -37,13 +36,14 @@ import candlepb.Uno.uno_data as uno_data
 from candlepb.Uno.uno_data import CombinedDataLoader, CombinedDataGenerator
 
 from deephyper.contrib.callbacks import StopIfUnfeasible
-from deephyper.contrib.perf.theta import set_perf_settings_for_keras
+from deephyper.benchmark.util import numpy_dict_cache
+from deephyper.search import util
+
 
 logger = logging.getLogger(__name__)
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-set_perf_settings_for_keras()
 
 def set_seed(seed):
     os.environ['PYTHONHASHSEED'] = '0'
@@ -229,6 +229,7 @@ def build_feature_model(input_shape, name='', dense_layers=[1000, 1000],
             except ValueError:
                 pass
     model = Model(x_input, h, name=name)
+    plot_model(model, to_file=name+'.model.png', show_shapes=True)
     return model
 
 
@@ -282,6 +283,9 @@ def build_model(loader, args, permanent_dropout=True, silent=False):
 
 def initialize_parameters():
 
+    # saved = sys.argv
+    # sys.argv = sys.argv[:1]
+    # sys.argv.extend(['--config_file', 'uno_by_drug_example.txt'])
     # Build benchmark object
     unoBmk = benchmark.BenchmarkUno(benchmark.file_path, 'uno_default_model.txt', 'keras',
     prog='uno_baseline', desc='Build neural network based models to predict tumor response to single and paired drugs.')
@@ -289,21 +293,16 @@ def initialize_parameters():
     # Initialize parameters
     gParameters = candle.initialize_parameters(unoBmk)
     #benchmark.logger.info('Params: {}'.format(gParameters))
-
+    # sys.argv = saved
     return gParameters
+
 
 class Struct:
     def __init__(self, **entries):
         self.__dict__.update(entries)
 
-from deephyper.benchmark.util import numpy_dict_cache
 
-# @numpy_dict_cache('/dev/shm/uno_data.npz')
-#@numpy_dict_cache('/Users/romainegele/Documents/Argonne/trash/uno_data.npz')
-@numpy_dict_cache('/projects/datascience/regele/data-tmp/uno_data.npz')
-def load_data1():
-
-    params = initialize_parameters()
+def run(params):
     args = Struct(**params)
     set_seed(args.rng_seed)
     ext = extension_from_parameters(args)
@@ -316,12 +315,15 @@ def load_data1():
     loader = CombinedDataLoader(seed=args.rng_seed)
     loader.load(cache=args.cache,
                 ncols=args.feature_subsample,
+                agg_dose=args.agg_dose,
                 cell_features=args.cell_features,
                 drug_features=args.drug_features,
                 drug_median_response_min=args.drug_median_response_min,
                 drug_median_response_max=args.drug_median_response_max,
                 use_landmark_genes=args.use_landmark_genes,
                 use_filtered_genes=args.use_filtered_genes,
+                cell_feature_subset_path=args.cell_feature_subset_path or args.feature_subset_path,
+                drug_feature_subset_path=args.drug_feature_subset_path or args.feature_subset_path,
                 preprocess_rnaseq=args.preprocess_rnaseq,
                 single=args.single,
                 train_sources=args.train_sources,
@@ -330,80 +332,263 @@ def load_data1():
                 encode_response_source=not args.no_response_source,
                 )
 
+    target = args.agg_dose or 'Growth'
     val_split = args.validation_split
     train_split = 1 - val_split
 
-    loader.partition_data(cv_folds=args.cv, train_split=train_split, val_split=val_split, cell_types=args.cell_types, by_cell=args.by_cell, by_drug=args.by_drug)
-    print('-- partition data ok')
-    train_gen = CombinedDataGenerator(loader, batch_size=args.batch_size, shuffle=args.shuffle)
-    val_gen = CombinedDataGenerator(loader, partition='val', batch_size=args.batch_size, shuffle=args.shuffle)
+    if args.export_data:
+        fname = args.export_data
+        loader.partition_data(cv_folds=args.cv, train_split=train_split, val_split=val_split,
+                              cell_types=args.cell_types, by_cell=args.by_cell, by_drug=args.by_drug,
+                              cell_subset_path=args.cell_subset_path, drug_subset_path=args.drug_subset_path)
+        train_gen = CombinedDataGenerator(loader, batch_size=args.batch_size, shuffle=args.shuffle)
+        val_gen = CombinedDataGenerator(loader, partition='val', batch_size=args.batch_size, shuffle=args.shuffle)
+        x_train_list, y_train = train_gen.get_slice(size=train_gen.size, dataframe=True, single=args.single)
+        x_val_list, y_val = val_gen.get_slice(size=val_gen.size, dataframe=True, single=args.single)
+        df_train = pd.concat([y_train] + x_train_list, axis=1)
+        df_val = pd.concat([y_val] + x_val_list, axis=1)
+        df = pd.concat([df_train, df_val]).reset_index(drop=True)
+        if args.growth_bins > 1:
+            df = uno_data.discretize(df, 'Growth', bins=args.growth_bins)
+        df.to_csv(fname, sep='\t', index=False, float_format="%.3g")
+        return
 
-    prop = 0.01
-    size = int(train_gen.size * prop)
-    x_train_list, y_train = train_gen.get_slice(size=size, dataframe=False, single=args.single)
-    print('-- get_slice train')
-    for i, x in enumerate(x_train_list):
-        print(f'-- i={i}, x.shape: {np.shape(x)}')
-    print('-- y.shape: ', np.shape(y_train))
-    print('-- train slice ok')
+    loader.partition_data(cv_folds=args.cv, train_split=train_split, val_split=val_split,
+                          cell_types=args.cell_types, by_cell=args.by_cell, by_drug=args.by_drug,
+                          cell_subset_path=args.cell_subset_path, drug_subset_path=args.drug_subset_path)
 
-    prop = 0.01
-    size = int(val_gen.size * prop)
-    print('-- get_slice valid')
-    x_val_list, y_val = val_gen.get_slice(size=size, dataframe=False, single=args.single)
-    for i, x in enumerate(x_val_list):
-        print(f'-- i={i}, x.shape: {np.shape(x)}')
-    print('-- y.shape: ', np.shape(y_val))
-    print('-- validation slice ok')
+    model = build_model(loader, args)
+    logger.info('Combined model:')
+    model.summary(print_fn=logger.info)
+    plot_model(model, to_file=prefix+'.model.png', show_shapes=True)
+
+    if args.cp:
+        model_json = model.to_json()
+        with open(prefix+'.model.json', 'w') as f:
+            print(model_json, file=f)
+
+    def warmup_scheduler(epoch):
+        lr = args.learning_rate or base_lr * args.batch_size/100
+        if epoch <= 5:
+            K.set_value(model.optimizer.lr, (base_lr * (5-epoch) + lr * epoch) / 5)
+        logger.debug('Epoch {}: lr={:.5g}'.format(epoch, K.get_value(model.optimizer.lr)))
+        return K.get_value(model.optimizer.lr)
+
+    df_pred_list = []
+
+    cv_ext = ''
+    cv = args.cv if args.cv > 1 else 1
+
+    for fold in range(cv):
+        if args.cv > 1:
+            logger.info('Cross validation fold {}/{}:'.format(fold+1, cv))
+            cv_ext = '.cv{}'.format(fold+1)
+
+        model = build_model(loader, args, silent=True)
+
+        optimizer = optimizers.deserialize({'class_name': args.optimizer, 'config': {}})
+        base_lr = args.base_lr or K.get_value(optimizer.lr)
+        if args.learning_rate:
+            K.set_value(optimizer.lr, args.learning_rate)
+
+        model.compile(loss=args.loss, optimizer=optimizer, metrics=[mae, r2])
+
+        # calculate trainable and non-trainable params
+        params.update(candle.compute_trainable_params(model))
+
+        candle_monitor = candle.CandleRemoteMonitor(params=params)
+        timeout_monitor = candle.TerminateOnTimeOut(params['timeout'])
+
+        reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=0.00001)
+        warmup_lr = LearningRateScheduler(warmup_scheduler)
+        checkpointer = ModelCheckpoint(prefix+cv_ext+'.weights.h5', save_best_only=True, save_weights_only=True)
+        tensorboard = TensorBoard(log_dir="tb/tb{}{}".format(ext, cv_ext))
+        history_logger = LoggingCallback(logger.debug)
+        model_recorder = ModelRecorder()
+
+        # callbacks = [history_logger, model_recorder]
+        callbacks = [candle_monitor, timeout_monitor, history_logger, model_recorder]
+        # callbacks = [candle_monitor, history_logger, model_recorder]  #
+        if args.reduce_lr:
+            callbacks.append(reduce_lr)
+        if args.warmup_lr:
+            callbacks.append(warmup_lr)
+        if args.cp:
+            callbacks.append(checkpointer)
+        if args.tb:
+            callbacks.append(tensorboard)
+
+        train_gen = CombinedDataGenerator(loader, fold=fold, batch_size=args.batch_size, shuffle=args.shuffle)
+        val_gen = CombinedDataGenerator(loader, partition='val', fold=fold, batch_size=args.batch_size, shuffle=args.shuffle)
+
+        df_val = val_gen.get_response(copy=True)
+        y_val = df_val[target].values
+        y_shuf = np.random.permutation(y_val)
+        log_evaluation(evaluate_prediction(y_val, y_shuf),
+                       description='Between random pairs in y_val:')
+
+        if args.no_gen:
+            x_train_list, y_train = train_gen.get_slice(size=train_gen.size, single=args.single)
+            x_val_list, y_val = val_gen.get_slice(size=val_gen.size, single=args.single)
+            history = model.fit(x_train_list, y_train,
+                                batch_size=args.batch_size,
+                                epochs=args.epochs,
+                                callbacks=callbacks,
+                                validation_data=(x_val_list, y_val))
+        else:
+            logger.info('Data points per epoch: train = %d, val = %d',train_gen.size, val_gen.size)
+            logger.info('Steps per epoch: train = %d, val = %d',train_gen.steps, val_gen.steps)
+            history = model.fit_generator(train_gen.flow(single=args.single), train_gen.steps,
+                                          epochs=args.epochs,
+                                          callbacks=callbacks,
+                                          validation_data=val_gen.flow(single=args.single),
+                                          validation_steps=val_gen.steps)
+
+        if args.cp:
+            model = model_recorder.best_model
+            model.save(prefix+'.model.h5')
+            # model.load_weights(prefix+cv_ext+'.weights.h5')
+
+        if args.no_gen:
+            y_val_pred = model.predict(x_val_list, batch_size=args.batch_size)
+        else:
+            val_gen.reset()
+            y_val_pred = model.predict_generator(val_gen.flow(single=args.single), val_gen.steps)
+            y_val_pred = y_val_pred[:val_gen.size]
+
+        y_val_pred = y_val_pred.flatten()
+
+        scores = evaluate_prediction(y_val, y_val_pred)
+        log_evaluation(scores)
+
+        # df_val = df_val.assign(PredictedGrowth=y_val_pred, GrowthError=y_val_pred-y_val)
+        df_val['Predicted'+target] = y_val_pred
+        df_val[target+'Error'] = y_val_pred-y_val
+
+        df_pred_list.append(df_val)
+
+        plot_history(prefix, history, 'loss')
+        plot_history(prefix, history, 'r2')
+
+    pred_fname = prefix + '.predicted.tsv'
+    df_pred = pd.concat(df_pred_list)
+    if args.agg_dose:
+        df_pred.sort_values(['Source', 'Sample', 'Drug1', 'Drug2', target], inplace=True)
+    else:
+        df_pred.sort_values(['Source', 'Sample', 'Drug1', 'Drug2', 'Dose1', 'Dose2', 'Growth'], inplace=True)
+    df_pred.to_csv(pred_fname, sep='\t', index=False, float_format='%.4g')
+
+    if args.cv > 1:
+        scores = evaluate_prediction(df_pred[target], df_pred['Predicted'+target])
+        log_evaluation(scores, description='Combining cross validation folds:')
+
+    for test_source in loader.test_sep_sources:
+        test_gen = CombinedDataGenerator(loader, partition='test', batch_size=args.batch_size, source=test_source)
+        df_test = test_gen.get_response(copy=True)
+        y_test = df_test[target].values
+        n_test = len(y_test)
+        if n_test == 0:
+            continue
+        if args.no_gen:
+            x_test_list, y_test = test_gen.get_slice(size=test_gen.size, single=args.single)
+            y_test_pred = model.predict(x_test_list, batch_size=args.batch_size)
+        else:
+            y_test_pred = model.predict_generator(test_gen.flow(single=args.single), test_gen.steps)
+            y_test_pred = y_test_pred[:test_gen.size]
+        y_test_pred = y_test_pred.flatten()
+        scores = evaluate_prediction(y_test, y_test_pred)
+        log_evaluation(scores, description='Testing on data from {} ({})'.format(test_source, n_test))
+
+    if K.backend() == 'tensorflow':
+        K.clear_session()
+
+    logger.handlers = []
+
+    return history
+
+
+# @numpy_dict_cache('/projects/datascience/regele/data-tmp/uno_data.npz')
+def load_data1():
+    sys.argv = sys.argv[:1] + ['--config_file', 'uno_by_drug_example.txt']
+    params = initialize_parameters()
+    args = Struct(**params)
+    set_seed(args.rng_seed)
+    ext = extension_from_parameters(args)
+    verify_path(args.save)
+    prefix = args.save + ext
+    logfile = args.logfile if args.logfile else prefix+'.log'
+    set_up_logger(logfile, args.verbose)
+
+    loader = CombinedDataLoader(seed=args.rng_seed)
+    loader.load(cache=args.cache,
+                ncols=args.feature_subsample,
+                agg_dose=args.agg_dose,
+                cell_features=args.cell_features,
+                drug_features=args.drug_features,
+                drug_median_response_min=args.drug_median_response_min,
+                drug_median_response_max=args.drug_median_response_max,
+                use_landmark_genes=args.use_landmark_genes,
+                use_filtered_genes=args.use_filtered_genes,
+                cell_feature_subset_path=args.cell_feature_subset_path or args.feature_subset_path,
+                drug_feature_subset_path=args.drug_feature_subset_path or args.feature_subset_path,
+                preprocess_rnaseq=args.preprocess_rnaseq,
+                single=args.single,
+                train_sources=args.train_sources,
+                test_sources=args.test_sources,
+                embed_feature_source=not args.no_feature_source,
+                encode_response_source=not args.no_response_source,
+                )
+
+    target = args.agg_dose or 'Growth'
+    val_split = args.validation_split
+    train_split = 1 - val_split
+
+    loader.partition_data(cv_folds=args.cv, train_split=train_split, val_split=val_split,
+                          cell_types=args.cell_types, by_cell=args.by_cell, by_drug=args.by_drug,
+                          cell_subset_path=args.cell_subset_path, drug_subset_path=args.drug_subset_path)
+
+    train_gen = CombinedDataGenerator(loader, fold=0, batch_size=args.batch_size, shuffle=args.shuffle)
+    val_gen = CombinedDataGenerator(loader, partition='val', fold=0, batch_size=args.batch_size, shuffle=args.shuffle)
+
+    x_train_list, y_train = train_gen.get_slice(size=train_gen.size, single=args.single)
+    x_val_list, y_val = val_gen.get_slice(size=val_gen.size, single=args.single)
 
     data = {
         'x_train_0': x_train_list[0],
         'x_train_1': x_train_list[1],
         'x_train_2': x_train_list[2],
         'x_train_3': x_train_list[3],
-        'x_train_4': x_train_list[4],
-        'x_train_5': x_train_list[5],
-        'x_train_6': x_train_list[6],
-        'x_train_7': x_train_list[7],
         'y_train': y_train,
         'x_val_0': x_val_list[0],
         'x_val_1': x_val_list[1],
         'x_val_2': x_val_list[2],
         'x_val_3': x_val_list[3],
-        'x_val_4': x_val_list[4],
-        'x_val_5': x_val_list[5],
-        'x_val_6': x_val_list[6],
-        'x_val_7': x_val_list[7],
-        'y_val': y_val,
+        'y_val': y_val
     }
     return data
 
-@numpy_dict_cache('/dev/shm/uno_data.npz')
+
+# @numpy_dict_cache('/dev/shm/uno_data.npz')
 def load_data2():
     return load_data1()
 
-def load_data_proxy():
+def run_model(config):
+    params = initialize_parameters()
+
+    args = Struct(**params)
 
     data = load_data2()
-    x_train_list = [data[f'x_train_{i}'] for i in range(8)]
+
+    x_train_list = [data[f'x_train_{i}'] for i in range(4)]
     y_train = data['y_train']
-    x_val_list= [data[f'x_val_{i}'] for i in range(8)]
+    x_val_list = [data[f'x_val_{i}'] for i in range(4)]
     y_val = data['y_val']
 
-    return (x_train_list, y_train), (x_val_list, y_val)
-
-
-from deephyper.search import util
-
-def run_model(config):
-
     num_epochs = config['hyperparameters']['num_epochs']
-    batch_size = config['hyperparameters']['batch_size']
+    batch_size = args.batch_size # config['hyperparameters']['batch_size']
 
     config['create_structure']['func'] = util.load_attr_from(
          config['create_structure']['func'])
-
-    (x_train_list, y_train), (x_val_list, y_val) = load_data_proxy()
 
     input_shape = [np.shape(a)[1:] for a in x_train_list]
     print('input_shape: ', input_shape)
@@ -454,9 +639,23 @@ def run_model(config):
     except:
         return -1.0
 
+def main():
+    params = initialize_parameters()
+    run(params)
+
 if __name__ == '__main__':
-    from candlepb.Uno.problems.problem_exp1 import Problem
-    config = Problem.space
-    config['arch_seq'] = [0.32156287383210125, 0.2878669634125548, 0.19252517724700702, 0.7545455557323973, 0.6525798891902204, 0.6158244189400006, 0.054357129459733144, 0.13022159455911952, 0.42652013730118765, 0.47423623333767395, 0.12985790440175204, 0.7204708399366111]
-    run_model(config)
-    #load_data1()
+    if len(sys.argv) > 1 and sys.argv[1] == 'dl':
+        print('DOWNOADING DATA')
+        sys.argv = sys.argv[:1]
+        load_data1()
+    elif len(sys.argv) > 1 and sys.argv[1] == 'test':
+        print('TEST RUN_MODEL')
+        sys.argv = sys.argv[:1]
+        from candlepb.Uno.problems.problem_exp1 import Problem
+        config = Problem.space
+        config['arch_seq'] = [0.11965125975748281, 0.5424449828146956, 0.3012431088767643, 0.5121207835569991, 0.32571389977590304, 0.838641707024774, 0.02149734109122714, 0.6223048542023507, 0.8826353173511572, 0.18149699176338874, 0.5669249619271262, 0.47453063686055597]
+        run_model(config)
+    else:
+        main()
+        if K.backend() == 'tensorflow':
+            K.clear_session()

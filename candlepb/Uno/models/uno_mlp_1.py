@@ -11,24 +11,24 @@ from deephyper.search.nas.model.space.op.op1d import (Concatenate, Dense,
 from deephyper.search.nas.model.space.structure import KerasStructure
 
 def create_mlp_node(node):
-    node.add_op(Identity())
-    node.add_op(Dense(100, tf.nn.relu))
-    node.add_op(Dense(100, tf.nn.tanh))
-    node.add_op(Dense(100, tf.nn.sigmoid))
-    node.add_op(Dropout(0.3))
-    node.add_op(Dense(500, tf.nn.relu))
-    node.add_op(Dense(500, tf.nn.tanh))
-    node.add_op(Dense(500, tf.nn.sigmoid))
-    node.add_op(Dropout(0.4))
-    node.add_op(Dense(1000, tf.nn.relu))
-    node.add_op(Dense(1000, tf.nn.tanh))
+    # node.add_op(Identity())
+    # node.add_op(Dense(100, tf.nn.relu))
+    # node.add_op(Dense(100, tf.nn.tanh))
+    # node.add_op(Dense(100, tf.nn.sigmoid))
+    # node.add_op(Dropout(0.3))
+    # node.add_op(Dense(500, tf.nn.relu))
+    # node.add_op(Dense(500, tf.nn.tanh))
+    # node.add_op(Dense(500, tf.nn.sigmoid))
+    # node.add_op(Dropout(0.4))
+    # node.add_op(Dense(1000, tf.nn.relu))
+    # node.add_op(Dense(1000, tf.nn.tanh))
     node.add_op(Dense(1000, tf.nn.sigmoid))
-    node.add_op(Dropout(0.5))
+    # node.add_op(Dropout(0.5))
 
-# def set_cell_output_add(cell):
-#     addNode = ConstantNode(name='Merging')
-#     addNode.set_op(AddByPadding(cell.graph, addNode, cell.get_blocks_output()))
-#     cell.set_outputs(node=addNode)
+def set_cell_output_add(cell):
+    addNode = ConstantNode(name='Merging')
+    addNode.set_op(AddByPadding(cell.graph, addNode, cell.get_blocks_output()))
+    cell.set_outputs(node=addNode)
 
 def create_cell_1(input_nodes):
     """Create a cell with convolution.
@@ -40,6 +40,11 @@ def create_cell_1(input_nodes):
         Cell: the corresponding cell.
     """
     cell = Cell(input_nodes)
+
+    input_dose1 = input_nodes[0]
+    input_rnaseq = input_nodes[1]
+    input_drug1descriptor = input_nodes[2]
+    input_drug1fingerprints = input_nodes[3]
 
     def create_block_3_nodes(input_node):
 
@@ -66,115 +71,69 @@ def create_cell_1(input_nodes):
         return block, (n1, n2, n3)
 
     # BLOCK FOR: dose1
-    # input_nodes[0] == dose1
     n = ConstantNode(op=Identity(), name='N1', )
-    cell.graph.add_edge(input_nodes[0], n)
+    cell.graph.add_edge(input_dose1, n)
     block0 = Block()
     block0.add_node(n)
     cell.add_block(block0)
 
 
-    # BLOCK FOR: dose2
-    # input_nodes[1] == dose2
-    n = ConstantNode(op=Identity(), name='N1', )
-    cell.graph.add_edge(input_nodes[1], n)
-    block1 = Block()
-    block1.add_node(n)
-    cell.add_block(block1)
-
-
-    # BLOCK FOR: response.source
-    # input_nodes[2] == response.source
-    n = ConstantNode(op=Identity(), name='N1')
-    cell.graph.add_edge(input_nodes[2], n)
-    block2 = Block()
-    block2.add_node(n)
-    cell.add_block(block2)
-
-
     # BLOCK FOR: rnaseq
-    # input_nodes[3] == rnaseq
-    block3, _ = create_block_3_nodes(input_nodes[3])
+    block3, _ = create_block_3_nodes(input_rnaseq)
     cell.add_block(block3)
 
     # BLOCK FOR: drug1.descriptor
-    # input_nodes[4] == drug1.descriptor
-    block4, (vn1, vn2, vn3) = create_block_3_nodes(input_nodes[4])
+    block4, _ = create_block_3_nodes(input_drug1descriptor)
     cell.add_block(block4)
 
-
-    # BLOCK FOR: drug2.descriptor
-    # input_nodes[6] == drug2.descriptor
-    # first node of block
-    m_vn1 = MirrorNode(node=vn1)
-    cell.graph.add_edge(input_nodes[6], m_vn1) # fixed input of current block
-    # second node of block
-    m_vn2 = MirrorNode(node=vn2)
-    # third node of the block
-    m_vn3 = MirrorNode(node=vn3)
-
-    block6 = Block()
-    block6.add_node(m_vn1)
-    block6.add_node(m_vn2)
-    block6.add_node(m_vn3)
-    block6.add_edge(m_vn1, m_vn2)
-    block6.add_edge(m_vn2, m_vn3)
-    cell.add_block(block6)
-
-
     # BLOCK FOR: drug1.fingerprints
-    # input_nodes[5] == drug1.fingerprints
-    block5, (vn1, vn2, vn3) = create_block_3_nodes(input_nodes[5])
+    block5, _ = create_block_3_nodes(input_drug1fingerprints)
     cell.add_block(block5)
-
-
-    # BLOCK FOR: drug2.fingerprints
-    # input_nodes[7] == drug2.fingerprints
-    # first node of block
-    m_vn1 = MirrorNode(node=vn1)
-    cell.graph.add_edge(input_nodes[7], m_vn1) # fixed input of current block
-    # second node of block
-    m_vn2 = MirrorNode(node=vn2)
-    # third node of the block
-    m_vn3 = MirrorNode(node=vn3)
-
-    block7 = Block()
-    block7.add_node(m_vn1)
-    block7.add_node(m_vn2)
-    block7.add_node(m_vn3)
-    block7.add_edge(m_vn1, m_vn2)
-    block7.add_edge(m_vn2, m_vn3)
-    cell.add_block(block7)
-
 
     # set_cell_output_add(cell)
     cell.set_outputs()
     return cell
 
 def create_mlp_block(cell, input_node):
+        block = Block()
 
         # first node of block
         n1 = VariableNode('N1')
         create_mlp_node(n1)
         cell.graph.add_edge(input_node, n1) # fixed input of current block
+        block.add_node(n1)
 
         # second node of block
         n2 = VariableNode('N2')
         create_mlp_node(n2)
+        block.add_node(n2)
+
+        addNode1 = ConstantNode(name='Merging')
+        addNode1.set_op(AddByPadding()) # edge created here
+        block.add_node(addNode1)
+
+        block.add_edge(n1, n2)
+        block.add_edge(n2, addNode1)
+        block.add_edge(n1, addNode1) # residual connection
 
         n3 = VariableNode('N3')
         create_mlp_node(n3)
-
-        block = Block()
-        block.add_node(n1)
-        block.add_node(n2)
         block.add_node(n3)
 
-        block.add_edge(n1, n2)
-        block.add_edge(n2, n3)
-        return block
+        block.add_edge(addNode1, n3)
 
-def create_structure(input_shape=[(2,) for _ in range(8)], output_shape=(1,), num_cell=8, *args, **kwargs):
+        addNode2 = ConstantNode(name='Merging')
+        addNode2.set_op(AddByPadding()) # edge created here
+        block.add_node(addNode2)
+
+        block.add_edge(n3, addNode2)
+        block.add_edge(addNode1, addNode2)
+
+        cell.add_block(block)
+        return n1
+
+
+def create_structure(input_shape=[(2,) for _ in range(4)], output_shape=(1,), num_cell=8, *args, **kwargs):
 
     network = KerasStructure(input_shape, output_shape) #, output_op=AddByPadding)
     input_nodes = network.input_nodes
@@ -187,39 +146,13 @@ def create_structure(input_shape=[(2,) for _ in range(8)], output_shape=(1,), nu
     # # CELL Middle
     # inputs_skipco = [input_nodes, input_nodes[0], input_nodes[1], input_nodes[2], cell1.output]
     pred_cell = cell1
-    # n = num_cell
-    # for i in range(n):
-    #     cell_i = Cell(input_nodes + [cell1.output])
-
-    #     block1 = create_mlp_block(cell_i, pred_cell.output)
-    #     cell_i.add_block(block1)
-
-    #     cnode = VariableNode(name='SkipCo')
-    #     nullNode = ConstantNode(op=Tensor([]), name='None')
-    #     cnode.add_op(Connect(cell_i.graph, nullNode, cnode)) # SAME
-
-    #     for inpt in inputs_skipco:
-    #         cnode.add_op(Connect(cell_i.graph, inpt, cnode))
-
-    #     block2 = Block()
-    #     block2.add_node(cnode)
-    #     cell_i.add_block(block2)
-    #     # set_cell_output_add(cell2)
-    #     cell_i.set_outputs()
-
-    #     network.add_cell(cell_i)
-
-    #     # prep. for next iter
-    #     inputs_skipco.append(cell_i.output)
-    #     pred_cell = cell_i
 
 
     # CELL LAST
     cell_last = Cell([pred_cell.output])
-    block1 = create_mlp_block(cell_last, pred_cell.output)
-    cell_last.add_block(block1)
-    # set_cell_output_add(cell3)
-    cell_last.set_outputs()
+    first_node = create_mlp_block(cell_last, pred_cell.output)
+    set_cell_output_add(cell_last)
+
     network.add_cell(cell_last)
 
 
@@ -234,11 +167,7 @@ def test_create_structure():
     # seed(10)
     shapes = [
         (1, ),
-        (1, ),
-        (9, ),
-        (17750, ),
-        (5270, ),
-        (2048, ),
+        (942, ),
         (5270, ),
         (2048, )
     ]
