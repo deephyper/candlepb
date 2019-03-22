@@ -507,7 +507,7 @@ def run(params):
     return history
 
 
-# @numpy_dict_cache('/projects/datascience/regele/data-tmp/uno_data.npz')
+@numpy_dict_cache('/projects/datascience/regele/data-tmp/uno_data.npz')
 def load_data1():
     sys.argv = sys.argv[:1] + ['--config_file', 'uno_by_drug_example.txt']
     params = initialize_parameters()
@@ -568,7 +568,7 @@ def load_data1():
     return data
 
 
-# @numpy_dict_cache('/dev/shm/uno_data.npz')
+@numpy_dict_cache('/dev/shm/uno_data.npz')
 def load_data2():
     return load_data1()
 
