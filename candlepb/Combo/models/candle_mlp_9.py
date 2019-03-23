@@ -4,11 +4,13 @@ from deephyper.search.nas.model.space.block import Block
 from deephyper.search.nas.model.space.cell import Cell
 from deephyper.search.nas.model.space.node import (ConstantNode, MirrorNode,
                                                    VariableNode)
-from deephyper.search.nas.model.space.op.basic import Connect, Tensor, AddByPadding
+from deephyper.search.nas.model.space.op.basic import (AddByPadding, Connect,
+                                                       Tensor)
 from deephyper.search.nas.model.space.op.op1d import (Concatenate, Dense,
                                                       Dropout, Identity,
                                                       dropout_ops)
 from deephyper.search.nas.model.space.structure import KerasStructure
+
 
 def create_mlp_node(node):
     node.add_op(Identity())

@@ -155,15 +155,28 @@ def test_create_structure():
     assert type(structure) is KerasStructure
 
     ops = [random() for i in range(structure.num_nodes)]
-    # ops = [0 for i in range(structure.num_nodes)]
+    ops = [
+            0.16666666666666666,
+            0.5,
+            0.3333333333333333,
+            0.16666666666666666,
+            0.0,
+            0.5,
+            0.0,
+            0.16666666666666666,
+            0.16666666666666666,
+            0.0,
+            0.0,
+            0.6666666666666666
+        ]
     print('num ops: ', len(ops))
     structure.set_ops(ops)
-    structure.draw_graphviz('graph_anl_conv_mlp_2_test.dot')
+    structure.draw_graphviz('nt3_model.dot')
 
     model = structure.create_model()
 
     model = structure.create_model()
-    plot_model(model, to_file='graph_anl_conv_mlp_2_test.png', show_shapes=True)
+    plot_model(model, to_file='nt3_model.png', show_shapes=True)
 
     model.summary()
 
