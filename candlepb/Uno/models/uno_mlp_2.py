@@ -13,19 +13,19 @@ from deephyper.search.nas.model.space.structure import KerasStructure
 
 
 def create_mlp_node(node):
-    # node.add_op(Identity())
+    node.add_op(Identity())
     node.add_op(Dense(100, tf.nn.relu))
-    # node.add_op(Dense(100, tf.nn.tanh))
-    # node.add_op(Dense(100, tf.nn.sigmoid))
-    # node.add_op(Dropout(0.3))
-    # node.add_op(Dense(500, tf.nn.relu))
-    # node.add_op(Dense(500, tf.nn.tanh))
-    # node.add_op(Dense(500, tf.nn.sigmoid))
-    # node.add_op(Dropout(0.4))
-    # node.add_op(Dense(1000, tf.nn.relu))
-    # node.add_op(Dense(1000, tf.nn.tanh))
-    # node.add_op(Dense(1000, tf.nn.sigmoid))
-    # node.add_op(Dropout(0.5))
+    node.add_op(Dense(100, tf.nn.tanh))
+    node.add_op(Dense(100, tf.nn.sigmoid))
+    node.add_op(Dropout(0.3))
+    node.add_op(Dense(500, tf.nn.relu))
+    node.add_op(Dense(500, tf.nn.tanh))
+    node.add_op(Dense(500, tf.nn.sigmoid))
+    node.add_op(Dropout(0.4))
+    node.add_op(Dense(1000, tf.nn.relu))
+    node.add_op(Dense(1000, tf.nn.tanh))
+    node.add_op(Dense(1000, tf.nn.sigmoid))
+    node.add_op(Dropout(0.5))
 
 def set_cell_output_add(cell):
     addNode = ConstantNode(name='Merging')
