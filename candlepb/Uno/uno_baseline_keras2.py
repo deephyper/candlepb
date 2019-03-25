@@ -507,7 +507,7 @@ def run(params):
     return history
 
 
-@numpy_dict_cache('/projects/datascience/regele/data-tmp/uno_data.npz')
+@numpy_dict_cache('/projects/datascience/regele/data-tmp/uno_data_rdm.npz')
 def load_data1():
     sys.argv = sys.argv[:1] + ['--config_file', 'uno_by_drug_example.txt']
     params = initialize_parameters()
@@ -553,6 +553,20 @@ def load_data1():
     x_train_list, y_train = train_gen.get_slice(size=train_gen.size, single=args.single)
     x_val_list, y_val = val_gen.get_slice(size=val_gen.size, single=args.single)
 
+    np.random.seed(2019)
+    y = np.concatenate([y_train, y_val], axis=0)
+    size = np.shape(y)[0]
+    prop = 0.8
+    curs = int(prop*size)
+    shuf = np.random.permutation(size)
+    y = y[shuf]
+    y_train, y_val = y[:curs], y[curs:]
+    for i in range(4):
+        x = np.concatenate([x_train_list[i], x_val_list[i]], axis=0)
+        x = x[shuf]
+        x_train_list[i] = x[:curs]
+        x_val_list[i] = x[curs:]
+
     data = {
         'x_train_0': x_train_list[0],
         'x_train_1': x_train_list[1],
@@ -568,7 +582,8 @@ def load_data1():
     return data
 
 
-@numpy_dict_cache('/dev/shm/uno_data.npz')
+# @numpy_dict_cache('/Users/romainegele/Documents/Argonne/trash/uno_data_rdm.npz')
+@numpy_dict_cache('/dev/shm/uno_data_rdm.npz')
 def load_data2():
     return load_data1()
 
@@ -653,7 +668,22 @@ if __name__ == '__main__':
         sys.argv = sys.argv[:1]
         from candlepb.Uno.problems.problem_exp1 import Problem
         config = Problem.space
-        config['arch_seq'] = [0.11965125975748281, 0.5424449828146956, 0.3012431088767643, 0.5121207835569991, 0.32571389977590304, 0.838641707024774, 0.02149734109122714, 0.6223048542023507, 0.8826353173511572, 0.18149699176338874, 0.5669249619271262, 0.47453063686055597]
+        config['arch_seq'] = [
+            0.46153846153846156,
+            0.07692307692307693,
+            0.23076923076923078,
+            0.23076923076923078,
+            0.07692307692307693,
+            0.23076923076923078,
+            0.07692307692307693,
+            0.38461538461538464,
+            0.23076923076923078,
+            0.38461538461538464,
+            0.38461538461538464,
+            0.38461538461538464
+        ]
+        # config['hyperparameters']['batch_size'] = 128
+        config['hyperparameters']['num_epochs'] = 20
         run_model(config)
     else:
         main()
