@@ -144,8 +144,32 @@ def create_structure(input_shape=(2,), output_shape=(1,), *args, **kwargs):
     skipco_input_nodes = input_nodes[:]
     feed_forward_node = input_nodes[0]
 
+    cell_1 = Cell(input_nodes)
+
+    n1 = create_conv_node('N1')
+    cell_1.graph.add_edge(feed_forward_node, n1) # fixed input connection
+
+    n2 = create_act_node('N2')
+
+    n3 = create_pool_node('N3')
+
+    block = Block()
+    block.add_node(n1)
+    block.add_node(n2)
+    block.add_node(n3)
+    block.add_edge(n1, n2)
+    block.add_edge(n2, n3)
+    cell_1.add_block(block)
+
+    mergeNode = ConstantNode(name='merge')
+    mergeNode.set_op(AddByPadding(cell_1.graph, mergeNode, cell_1.get_blocks_output()))
+    cell_1.set_outputs(node=mergeNode)
+    network.add_cell(cell_1)
+    skipco_input_nodes.append(cell_1.output)
+    feed_forward_node = cell_1.output
+
     # CONV CELLS
-    for i in range(4):
+    for i in range(3):
         # CONV CELL i
         cell_i = create_cell_conv(feed_forward_node, skipco_input_nodes)
         network.add_cell(cell_i)
@@ -185,22 +209,6 @@ def test_create_structure():
     plot_model(model, to_file='nt3_model.png', show_shapes=True)
 
     model.summary()
-
-    # import numpy as np
-    # x0 = np.zeros((1, *shapes[0]))
-    # x1 = np.zeros((1, *shapes[1]))
-    # x2 = np.zeros((1, *shapes[2]))
-    # inpts = [x0, x1, x2]
-    # y = model.predict(inpts)
-
-    # for x in inpts:
-    #     print(f'shape(x): {np.shape(x)}')
-    # print(f'shape(y): {np.shape(y)}')
-
-    # total_parameters = number_parameters()
-    # print('total_parameters: ', total_parameters)
-
-    # assert np.shape(y) == (1, 1), f'Wrong output shape {np.shape(y)} should be {(1, 1)}'
 
 if __name__ == '__main__':
     test_create_structure()
