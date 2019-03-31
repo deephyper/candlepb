@@ -1,5 +1,5 @@
 from deephyper.benchmark import Problem
-from candlepb.Combo.models.candle_mlp_8 import create_structure
+from candlepb.Combo.models.candle_mlp_9 import create_structure
 
 # We create our Problem object with the Problem class, you don't have to name your Problem object 'Problem' it can be any name you want. You can also define different problems in the same module.
 Problem = Problem()
@@ -15,7 +15,7 @@ Problem.add_dim('hyperparameters', {
 })
 
 Problem.add_dim('load_data', {
-    'prop': 0.5
+    'prop': 0.2
 })
 
 # Just to print your problem, to test its definition and imports in the current python environment.

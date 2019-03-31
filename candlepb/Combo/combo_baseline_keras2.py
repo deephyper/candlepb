@@ -844,7 +844,7 @@ def run_model(config):
         data = combo_ld_numpy(args)
     else:
         if not(config['load_data'].get('prop') is None):
-            print('Data prop: ', prop)
+            print('Data prop: ', config['load_data']['prop'])
             data = combo_ld_numpy(args, prop=config['load_data']['prop'])
         else:
             data = combo_ld_numpy(args)
