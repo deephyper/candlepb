@@ -758,7 +758,7 @@ from deephyper.benchmark.util import numpy_dict_cache
 
 # @numpy_dict_cache('/Users/romainegele/Documents/Argonne/trash/combo_data.npz')
 @numpy_dict_cache('/dev/shm/combo_data.npz')
-def combo_ld_numpy(args):
+def combo_ld_numpy(args, prop=0.1):
 
     # CANDLE
 
@@ -776,7 +776,7 @@ def combo_ld_numpy(args):
 
     x_train_list, y_train, x_val_list, y_val, df_train, df_val = loader.load_data()
 
-    prop = 0.1
+    #prop = 0.1
     cursor_train = int(len(y_train) * prop)
     # prop = 1.
     # cursor_valid = int(len(y_val) * prop)
@@ -840,8 +840,13 @@ def run_model(config):
 
     model.compile(loss=args.loss, optimizer=optimizer, metrics=[mae, r2])
 
-    # (x_train_list, y_train), (x_val_list, y_val) = load_data_deephyper(prop=0.1)
-    data = combo_ld_numpy(args)
+    if config.get('load_data') is None:
+        data = combo_ld_numpy(args)
+    else:
+        if not(config['load_data'].get('prop') is None):
+            data = combo_ld_numpy(args, prop=config['load_data']['prop'])
+        else:
+            data = combo_ld_numpy(args)
 
     x_train_list = [data['x_train_0'], data['x_train_1'], data['x_train_2']]
     y_train = data['y_train']
