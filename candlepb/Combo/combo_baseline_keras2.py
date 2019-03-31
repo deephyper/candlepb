@@ -844,6 +844,7 @@ def run_model(config):
         data = combo_ld_numpy(args)
     else:
         if not(config['load_data'].get('prop') is None):
+            print('Data prop: ', prop)
             data = combo_ld_numpy(args, prop=config['load_data']['prop'])
         else:
             data = combo_ld_numpy(args)
@@ -857,7 +858,7 @@ def run_model(config):
     t_data_loading = t2 - t1
     print('Time data loading: ', t_data_loading)
 
-    stop_if_unfeasible = StopIfUnfeasible(time_limit=900)
+    stop_if_unfeasible = StopIfUnfeasible(time_limit=1200)
     t1 = time.time()
     history = model.fit(x_train_list, y_train,
                         batch_size=args.batch_size,
