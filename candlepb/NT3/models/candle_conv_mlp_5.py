@@ -16,7 +16,8 @@ from deephyper.search.nas.model.space.structure import KerasStructure
 def create_conv_node(name):
     n = VariableNode(name)
     n.add_op(Identity())
-    for i in range(2, 11):
+    # for i in range(2, 11):
+    for i in range(3, 7):
         n.add_op(Conv1D(filter_size=i, num_filters=8))
     return n
 
@@ -24,7 +25,8 @@ def create_conv_node(name):
 def create_pool_node(name):
     n = VariableNode(name)
     n.add_op(Identity())
-    for i in range(2, 11):
+    # for i in range(2, 11):
+    for i in range(3, 7)
         n.add_op(MaxPooling1D(pool_size=i, padding='same'))
     return n
 
