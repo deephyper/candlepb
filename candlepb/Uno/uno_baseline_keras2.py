@@ -9,6 +9,7 @@ import os
 import sys
 import random
 import threading
+import time
 
 import numpy as np
 import pandas as pd
@@ -507,8 +508,7 @@ def run(params):
     return history
 
 
-@numpy_dict_cache('/projects/datascience/regele/data-tmp/uno_data_rdm.npz')
-def load_data1():
+def load_data_source():
     sys.argv = sys.argv[:1] + ['--config_file', 'uno_by_drug_example.txt']
     params = initialize_parameters()
     args = Struct(**params)
@@ -579,13 +579,74 @@ def load_data1():
         'x_val_3': x_val_list[3],
         'y_val': y_val
     }
+
+    print('SIZE TRAIN: ', int(len(y_train)))
+    print('SIZE VALID: ', int(len(y_val)))
     return data
 
 
-# @numpy_dict_cache('/Users/romainegele/Documents/Argonne/trash/uno_data_rdm.npz')
+@numpy_dict_cache('/projects/datascience/regele/data-tmp/uno_data_rdm.npz')
+def load_data1():
+    return load_data_source()
+
 @numpy_dict_cache('/dev/shm/uno_data_rdm.npz')
 def load_data2():
     return load_data1()
+
+def run_model_posttraining(config):
+    data = load_data_source()
+
+    x_train_list = [data[f'x_train_{i}'] for i in range(4)]
+    y_train = data['y_train']
+    x_val_list = [data[f'x_val_{i}'] for i in range(4)]
+    y_val = data['y_val']
+
+    num_epochs = config['hyperparameters']['num_epochs']
+    batch_size = 32 # config['hyperparameters']['batch_size']
+
+    config['create_structure']['func'] = util.load_attr_from(
+         config['create_structure']['func'])
+
+    input_shape = [np.shape(a)[1:] for a in x_train_list]
+    output_shape = (1, )
+
+    cs_kwargs = config['create_structure'].get('kwargs')
+    if cs_kwargs is None:
+        structure = config['create_structure']['func'](input_shape, output_shape)
+    else:
+        structure = config['create_structure']['func'](input_shape, output_shape, **cs_kwargs)
+
+    arch_seq = config['arch_seq']
+
+    structure.set_ops(arch_seq)
+    structure.draw_graphviz('nas_model_uno.dot')
+
+    model = structure.create_model()
+
+    from keras.utils import plot_model
+    plot_model(model, 'keras_model_uno.png', show_shapes=True)
+
+    n_params = model.count_params()
+
+    optimizer = optimizers.deserialize({'class_name': 'adam', 'config': {}})
+
+    model.compile(loss='mse', optimizer=optimizer, metrics=[mae, r2])
+
+    t1 = time.time()
+    history = model.fit(x_train_list, y_train,
+                                batch_size=batch_size,
+                                epochs=num_epochs,
+                                validation_data=(x_val_list, y_val))
+    t2 = time.time()
+
+    data = history.history
+    data['n_parameters'] = n_params
+    data['training_time'] = t2 - t1
+
+    print(data)
+
+    return data
+
 
 def run_model(config):
     params = initialize_parameters()
@@ -666,21 +727,46 @@ if __name__ == '__main__':
     elif len(sys.argv) > 1 and sys.argv[1] == 'test':
         print('TEST RUN_MODEL')
         sys.argv = sys.argv[:1]
-        from candlepb.Uno.problems.problem_exp1 import Problem
+        from candlepb.Uno.problems.problem_exp3 import Problem
         config = Problem.space
         config['arch_seq'] = [
-            0.46153846153846156,
-            0.07692307692307693,
-            0.23076923076923078,
-            0.23076923076923078,
-            0.07692307692307693,
-            0.23076923076923078,
-            0.07692307692307693,
-            0.38461538461538464,
-            0.23076923076923078,
-            0.38461538461538464,
-            0.38461538461538464,
-            0.38461538461538464
+            0.08333333333333333,
+            0.25,
+            0.375,
+            0.7916666666666666,
+            0.875,
+            0.08333333333333333,
+            0.875,
+            0.25,
+            0.25,
+            0.7916666666666666,
+            0.875,
+            0.8333333333333334,
+            0.75,
+            0.08333333333333333,
+            0.2916666666666667,
+            0.875,
+            0.08333333333333333,
+            0.5416666666666666,
+            0.3333333333333333,
+            0.75,
+            0.7916666666666666,
+            0.75,
+            0.625,
+            0.25,
+            0.08333333333333333,
+            0.08333333333333333,
+            0.4166666666666667,
+            0.4583333333333333,
+            0.08333333333333333,
+            0.25,
+            0.08333333333333333,
+            0.20833333333333334,
+            0.5416666666666666,
+            0.5416666666666666,
+            0.25,
+            0.5416666666666666,
+            0.25
         ]
         # config['hyperparameters']['batch_size'] = 128
         config['hyperparameters']['num_epochs'] = 20
