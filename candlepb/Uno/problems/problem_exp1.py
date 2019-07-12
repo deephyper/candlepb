@@ -1,19 +1,45 @@
-from deephyper.benchmark import Problem
-from candlepb.Uno.models.uno_mlp_1 import create_structure
 
-# We create our Problem object with the Problem class, you don't have to name your Problem object 'Problem' it can be any name you want. You can also define different problems in the same module.
-Problem = Problem()
+from deephyper.benchmark import NaProblem
+from candlepb.Uno.structs.uno_mlp_1 import create_structure
+from candlepb.Uno.uno_baseline_keras2 import load_data_muli_array
 
-# You define the create structure function. This function will return an object following the Structure interface. You can also have kwargs arguments such as 'num_cells' for this function.
-Problem.add_dim('create_structure', {
-    'func': create_structure,
-})
+Problem = NaProblem()
 
-# You define the hyperparameters used to train your generated models during the search.
-Problem.add_dim('hyperparameters', {
-    'num_epochs': 1,
-})
+Problem.load_data(load_data_muli_array)
 
-# Just to print your problem, to test its definition and imports in the current python environment.
+# Problem.preprocessing(minmaxstdscaler)
+
+Problem.search_space(create_structure, num_cells=3)
+
+Problem.hyperparameters(
+    batch_size=64,
+    learning_rate=0.001,
+    optimizer='adam',
+    num_epochs=1,
+)
+
+Problem.loss('mse')
+
+Problem.metrics(['r2'])
+
+Problem.objective('val_r2__last')
+
+Problem.post_training(
+    num_epochs=1000,
+    metrics=['r2'],
+    model_checkpoint={
+        'monitor': 'val_r2',
+        'mode': 'max',
+        'save_best_only': True,
+        'verbose': 1
+    },
+    early_stopping={
+        'monitor': 'val_r2',
+        'mode': 'max',
+        'verbose': 1,
+        'patience': 20
+    }
+)
+
 if __name__ == '__main__':
     print(Problem)

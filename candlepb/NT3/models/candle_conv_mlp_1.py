@@ -155,21 +155,8 @@ def test_create_structure():
     assert type(structure) is KerasStructure
 
     ops = [random() for i in range(structure.num_nodes)]
-    ops = [
-            0.16666666666666666,
-            0.5,
-            0.3333333333333333,
-            0.16666666666666666,
-            0.0,
-            0.5,
-            0.0,
-            0.16666666666666666,
-            0.16666666666666666,
-            0.0,
-            0.0,
-            0.6666666666666666
-        ]
     print('num ops: ', len(ops))
+    print('size: ', structure.size)
     structure.set_ops(ops)
     structure.draw_graphviz('nt3_model.dot')
 

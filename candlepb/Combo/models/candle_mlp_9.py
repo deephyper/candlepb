@@ -32,6 +32,7 @@ def create_mlp_node(node):
 #     addNode.set_op(AddByPadding(cell.graph, addNode, cell.get_blocks_output()))
 #     cell.set_outputs(node=addNode)
 
+
 def create_cell_1(input_nodes):
     """Create a cell with convolution.
 
@@ -48,7 +49,7 @@ def create_cell_1(input_nodes):
         # first node of block
         n1 = VariableNode('N1')
         create_mlp_node(n1)
-        cell.graph.add_edge(input_node, n1) # fixed input of current block
+        cell.graph.add_edge(input_node, n1)  # fixed input of current block
 
         # second node of block
         n2 = VariableNode('N2')
@@ -72,7 +73,7 @@ def create_cell_1(input_nodes):
 
    # first node of block
     m_vn1 = MirrorNode(node=vn1)
-    cell.graph.add_edge(input_nodes[2], m_vn1) # fixed input of current block
+    cell.graph.add_edge(input_nodes[2], m_vn1)  # fixed input of current block
 
     # second node of block
     m_vn2 = MirrorNode(node=vn2)
@@ -96,32 +97,36 @@ def create_cell_1(input_nodes):
     cell.set_outputs()
     return cell
 
+
 def create_mlp_block(cell, input_node):
 
         # first node of block
-        n1 = VariableNode('N1')
-        create_mlp_node(n1)
-        cell.graph.add_edge(input_node, n1) # fixed input of current block
+    n1 = VariableNode('N1')
+    create_mlp_node(n1)
+    cell.graph.add_edge(input_node, n1)  # fixed input of current block
 
-        # second node of block
-        n2 = VariableNode('N2')
-        create_mlp_node(n2)
+    # second node of block
+    n2 = VariableNode('N2')
+    create_mlp_node(n2)
 
-        n3 = VariableNode('N3')
-        create_mlp_node(n3)
+    n3 = VariableNode('N3')
+    create_mlp_node(n3)
 
-        block = Block()
-        block.add_node(n1)
-        block.add_node(n2)
-        block.add_node(n3)
+    block = Block()
+    block.add_node(n1)
+    block.add_node(n2)
+    block.add_node(n3)
 
-        block.add_edge(n1, n2)
-        block.add_edge(n2, n3)
-        return block
+    block.add_edge(n1, n2)
+    block.add_edge(n2, n3)
+    return block
 
-def create_structure(input_shape=[(2,), (2,), (2,)], output_shape=(1,), num_cell=8, *args, **kwargs):
 
-    network = KerasStructure(input_shape, output_shape) #, output_op=AddByPadding)
+def create_structure(input_shape=[(2,), (2,), (2,)], output_shape=(1,),
+                     num_cell=8, *args, **kwargs):
+
+    # , output_op=AddByPadding)
+    network = KerasStructure(input_shape, output_shape)
     input_nodes = network.input_nodes
 
     # CELL 1
@@ -129,7 +134,8 @@ def create_structure(input_shape=[(2,), (2,), (2,)], output_shape=(1,), num_cell
     network.add_cell(cell1)
 
     # CELL Middle
-    inputs_skipco = [input_nodes, input_nodes[0], input_nodes[1], input_nodes[2], cell1.output]
+    inputs_skipco = [input_nodes, input_nodes[0],
+                     input_nodes[1], input_nodes[2], cell1.output]
     pred_cell = cell1
     n = num_cell
     for i in range(n):
@@ -140,7 +146,7 @@ def create_structure(input_shape=[(2,), (2,), (2,)], output_shape=(1,), num_cell
 
         cnode = VariableNode(name='SkipCo')
         nullNode = ConstantNode(op=Tensor([]), name='None')
-        cnode.add_op(Connect(cell_i.graph, nullNode, cnode)) # SAME
+        cnode.add_op(Connect(cell_i.graph, nullNode, cnode))  # SAME
 
         for inpt in inputs_skipco:
             cnode.add_op(Connect(cell_i.graph, inpt, cnode))
@@ -157,7 +163,6 @@ def create_structure(input_shape=[(2,), (2,), (2,)], output_shape=(1,), num_cell
         inputs_skipco.append(cell_i.output)
         pred_cell = cell_i
 
-
     # CELL LAST
     cell_last = Cell([pred_cell.output])
     block1 = create_mlp_block(cell_last, pred_cell.output)
@@ -166,13 +171,12 @@ def create_structure(input_shape=[(2,), (2,), (2,)], output_shape=(1,), num_cell
     cell_last.set_outputs()
     network.add_cell(cell_last)
 
-
     return network
+
 
 def test_create_structure():
     from random import random, seed
     from deephyper.search.nas.model.space.structure import KerasStructure
-    from deephyper.core.model_utils import number_parameters
     from tensorflow.keras.utils import plot_model
     import tensorflow as tf
     # seed(10)
@@ -181,77 +185,24 @@ def test_create_structure():
     assert type(structure) is KerasStructure
 
     ops = [random() for i in range(structure.num_nodes)]
-    ops = [
-            0.6153846153846154,
-            0.38461538461538464,
-            0.07692307692307693,
-            0.07692307692307693,
-            0.46153846153846156,
-            0.38461538461538464,
-            0.23076923076923078,
-            0.07692307692307693,
-            0.38461538461538464,
-            0.07692307692307693,
-            0.07692307692307693,
-            0.38461538461538464,
-            0.8461538461538461,
-            0.07692307692307693,
-            0.38461538461538464,
-            0.38461538461538464,
-            0.38461538461538464,
-            0.38461538461538464,
-            0.8461538461538461,
-            0.07692307692307693,
-            0.07692307692307693,
-            0.9230769230769231,
-            0.38461538461538464,
-            0.07692307692307693,
-            0.9230769230769231,
-            0.7692307692307693,
-            0.6153846153846154,
-            0.8461538461538461,
-            0.6923076923076923,
-            0.07692307692307693,
-            0.7692307692307693,
-            0.38461538461538464,
-            0.07692307692307693,
-            0.07692307692307693,
-            0.38461538461538464,
-            0.38461538461538464,
-            0.07692307692307693,
-            0.38461538461538464,
-            0.38461538461538464,
-            0.6153846153846154,
-            0.07692307692307693
-        ]
+    ops = [0.38461538461538464, 0.6923076923076923, 0.6153846153846154, 0.7692307692307693, 0.07692307692307693, 0.6153846153846154, 0.6153846153846154, 0.38461538461538464, 0.46153846153846156, 0.38461538461538464, 0.38461538461538464, 0.6153846153846154, 0.38461538461538464, 0.9230769230769231, 0.8461538461538461, 0.38461538461538464, 0.5384615384615384, 0.07692307692307693, 0.38461538461538464, 0.38461538461538464,
+           0.07692307692307693, 0.5384615384615384, 0.38461538461538464, 0.38461538461538464, 0.6153846153846154, 0.5384615384615384, 0.07692307692307693, 0.38461538461538464, 0.38461538461538464, 0.6153846153846154, 0.07692307692307693, 0.38461538461538464, 0.6923076923076923, 0.38461538461538464, 0.23076923076923078, 0.8461538461538461, 0.23076923076923078, 0.38461538461538464, 0.38461538461538464, 0.38461538461538464, 0.07692307692307693]
 
     print('num ops: ', len(ops))
+    print('size: ', structure.size)
     structure.set_ops(ops)
-    structure.draw_graphviz('graph_candle_mlp_5.dot')
+    structure.draw_graphviz('graph_candle_mlp_9.dot')
 
     model = structure.create_model()
+    print('depth: ', structure.depth)
     model_json = model.to_json()
     with open('model.json', 'w') as f:
         f.write(model_json)
-    # model = structure.create_model()
-    # plot_model(model, to_file='graph_candle_mlp_5.png', show_shapes=True)
+    model = structure.create_model()
 
-    import numpy as np
-    x0 = np.zeros((1, *shapes[0]))
-    x1 = np.zeros((1, *shapes[1]))
-    x2 = np.zeros((1, *shapes[2]))
-    inpts = [x0, x1, x2]
-    y = model.predict(inpts)
+    print(structure.denormalize(ops))
+    print(structure.max_num_ops)
 
-    for x in inpts:
-        print(f'shape(x): {np.shape(x)}')
-    print(f'shape(y): {np.shape(y)}')
-
-    total_parameters = number_parameters()
-    print('total_parameters: ', total_parameters)
-
-    model.summary()
-    # assert np.shape(y) == (1, 1), f'Wrong output shape {np.shape(y)} should be {(1, 1)}'
 
 if __name__ == '__main__':
     test_create_structure()

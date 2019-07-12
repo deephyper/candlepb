@@ -109,6 +109,7 @@ def test_create_structure():
     structure.draw_graphviz('nt3_model.dot')
 
     model = structure.create_model()
+    print('depth: ', structure.depth)
 
     model = structure.create_model()
     plot_model(model, to_file='nt3_model.png', show_shapes=True)

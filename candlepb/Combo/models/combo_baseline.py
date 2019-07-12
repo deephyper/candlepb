@@ -10,6 +10,7 @@ from deephyper.search.nas.model.space.op.op1d import (Concatenate, Dense,
                                                       dropout_ops)
 from deephyper.search.nas.model.space.structure import KerasStructure
 
+
 def create_mlp_node(node):
     node.add_op(Dense(1000, tf.nn.relu))
 
@@ -17,6 +18,7 @@ def create_mlp_node(node):
 #     addNode = ConstantNode(name='Merging')
 #     addNode.set_op(AddByPadding(cell.graph, addNode, cell.get_blocks_output()))
 #     cell.set_outputs(node=addNode)
+
 
 def create_cell_1(input_nodes):
     """Create a cell with convolution.
@@ -33,7 +35,7 @@ def create_cell_1(input_nodes):
 
         # first node of block
         n1 = ConstantNode(op=Dense(1000, tf.nn.relu), name='N1')
-        cell.graph.add_edge(input_node, n1) # fixed input of current block
+        cell.graph.add_edge(input_node, n1)  # fixed input of current block
 
         # second node of block
         n2 = ConstantNode(op=Dense(1000, tf.nn.relu), name='N2')
@@ -55,7 +57,7 @@ def create_cell_1(input_nodes):
 
    # first node of block
     m_vn1 = MirrorNode(node=vn1)
-    cell.graph.add_edge(input_nodes[2], m_vn1) # fixed input of current block
+    cell.graph.add_edge(input_nodes[2], m_vn1)  # fixed input of current block
 
     # second node of block
     m_vn2 = MirrorNode(node=vn2)
@@ -79,29 +81,32 @@ def create_cell_1(input_nodes):
     cell.set_outputs()
     return cell
 
+
 def create_mlp_block(cell, input_node):
 
         # first node of block
-        n1 = ConstantNode(op=Dense(1000, tf.nn.relu), name='N1')
-        cell.graph.add_edge(input_node, n1) # fixed input of current block
+    n1 = ConstantNode(op=Dense(1000, tf.nn.relu), name='N1')
+    cell.graph.add_edge(input_node, n1)  # fixed input of current block
 
-        # second node of block
-        n2 = ConstantNode(op=Dense(1000, tf.nn.relu), name='N2')
+    # second node of block
+    n2 = ConstantNode(op=Dense(1000, tf.nn.relu), name='N2')
 
-        n3 = ConstantNode(op=Dense(1000, tf.nn.relu), name='N3')
+    n3 = ConstantNode(op=Dense(1000, tf.nn.relu), name='N3')
 
-        block = Block()
-        block.add_node(n1)
-        block.add_node(n2)
-        block.add_node(n3)
+    block = Block()
+    block.add_node(n1)
+    block.add_node(n2)
+    block.add_node(n3)
 
-        block.add_edge(n1, n2)
-        block.add_edge(n2, n3)
-        return block
+    block.add_edge(n1, n2)
+    block.add_edge(n2, n3)
+    return block
+
 
 def create_structure(input_shape=[(2,), (2,), (2,)], output_shape=(1,), *args, **kwargs):
 
-    network = KerasStructure(input_shape, output_shape) #, output_op=AddByPadding)
+    # , output_op=AddByPadding)
+    network = KerasStructure(input_shape, output_shape)
     input_nodes = network.input_nodes
 
     # CELL 1
@@ -115,8 +120,8 @@ def create_structure(input_shape=[(2,), (2,), (2,)], output_shape=(1,), *args, *
     cell2.set_outputs()
     network.add_cell(cell2)
 
-
     return network
+
 
 def test_create_structure():
     from random import random, seed
@@ -143,10 +148,12 @@ def test_create_structure():
     #         0.0
     #     ]
     print('num ops: ', len(ops))
+    print('size: ', structure.size)
     structure.set_ops(ops)
     structure.draw_graphviz('graph_candle_mlp_5.dot')
 
     model = structure.create_model()
+    print('depth: ', structure.depth)
 
     model = structure.create_model()
     plot_model(model, to_file='graph_candle_mlp_5.png', show_shapes=True)
@@ -167,6 +174,7 @@ def test_create_structure():
 
     model.summary()
     # assert np.shape(y) == (1, 1), f'Wrong output shape {np.shape(y)} should be {(1, 1)}'
+
 
 if __name__ == '__main__':
     test_create_structure()

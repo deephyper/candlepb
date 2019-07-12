@@ -1114,6 +1114,9 @@ def download():
 
     x_train_list, y_train, x_val_list, y_val, df_train, df_val = loader.load_data()
 
+    print('SIZE TRAIN: ', int(len(y_train)*0.1))
+    print('SIZE VALID: ', int(len(y_val)))
+
 if __name__ == '__main__':
     download()
     # from candlepb.Combo.problem_exp6 import Problem

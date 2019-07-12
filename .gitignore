@@ -115,3 +115,5 @@ DATA/
 *.npy
 *.png
 *.dot
+cache.pac.*
+*.pdf

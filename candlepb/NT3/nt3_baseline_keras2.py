@@ -72,7 +72,7 @@ def load_data2(train_path, test_path, gParameters):
 
     return X_train, Y_train, X_test, Y_test
 
-@numpy_dict_cache('/projects/datascience/regele/data-tmp/nt3_data.npz')
+# @numpy_dict_cache('/projects/datascience/regele/data-tmp/nt3_data.npz')
 def load_data1():
     gParameters = initialize_parameters()
     print ('Params:', gParameters)
@@ -99,7 +99,7 @@ def load_data1():
     }
     return data
 
-@numpy_dict_cache('/dev/shm/nt3_data.py')
+# @numpy_dict_cache('/dev/shm/nt3_data.py')
 def load_data_proxy():
     return load_data1()
 

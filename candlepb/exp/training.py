@@ -9,9 +9,9 @@ try:
 except:
     print('can\t import seaborn...')
 
-from candlepb.Combo.problem_exp5 import Problem
+# from candlepb.Combo.problem_exp5 import Problem
 # from candlepb.NT3.problem_exp1 import Problem
-# from candlepb.NT3.problem_exp2 import Problem
+from candlepb.NT3.problems.problem_exp4 import Problem
 
 # from deephyper.benchmark.nas.mnist1D.problem import Problem
 
@@ -27,51 +27,44 @@ from deephyper.search.nas.model.trainer.classifier_train_valid import \
 PROP = 1.0
 NUM_EPOCHS = 10
 ARCH_SEQ = [
-            0.1,
-            0.1,
-            0.4,
-            0.1,
-            0.9,
+            0.3,
+            0.0,
             0.9,
             0.8,
-            0.1,
-            0.0,
-            0.0,
-            0.4,
-            0.1,
-            0.3,
-            0.4,
-            0.2,
-            0.2,
-            0.2,
-            0.4,
-            0.1,
-            0.3,
-            0.0,
-            0.3,
             0.8,
+            0.7,
+            0.0,
+            0.3,
+            0.6,
+            0.6,
+            0.3,
+            0.0,
+            0.6,
+            0.0,
+            0.7,
+            0.3,
+            0.9,
+            0.1,
+            0.6,
+            0.7,
+            0.1,
+            0.5,
+            0.7,
             0.4,
             0.1,
-            0.6,
-            0.9,
-            0.0,
-            0.6,
+            0.4,
             0.1,
-            0.0,
-            0.9,
-            0.1,
+            0.5,
+            0.5,
+            0.7,
             0.7,
             0.8,
             0.0,
-            0.0,
-            0.2,
-            0.5,
-            0.5,
-            0.1,
+            0.4,
             0.0,
             0.9,
-            0.6,
-            0.8
+            0.5,
+            0.1
         ]
 
 def main(config):

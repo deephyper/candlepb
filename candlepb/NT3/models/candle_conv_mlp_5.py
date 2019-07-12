@@ -26,7 +26,7 @@ def create_pool_node(name):
     n = VariableNode(name)
     n.add_op(Identity())
     # for i in range(2, 11):
-    for i in range(3, 7)
+    for i in range(3, 7):
         n.add_op(MaxPooling1D(pool_size=i, padding='same'))
     return n
 
@@ -202,6 +202,7 @@ def test_create_structure():
 
     ops = [random() for i in range(structure.num_nodes)]
     print('num ops: ', len(ops))
+    print('size: ', structure.size)
     structure.set_ops(ops)
     structure.draw_graphviz('nt3_model.dot')
 
