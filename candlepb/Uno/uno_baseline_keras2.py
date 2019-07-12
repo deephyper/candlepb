@@ -584,7 +584,7 @@ def load_data_source():
     print('SIZE VALID: ', int(len(y_val)))
     return data
 
-def load_data_muli_array():
+def load_data_multi_array():
     data = load_data2()
     x_trains = [data[f'x_train_{i}'] for i in range(4)]
     x_valids = [data[f'x_val_{i}'] for i in range(4)]

@@ -1,39 +1,44 @@
-from deephyper.benchmark import Problem
-from candlepb.NT3.nt3_baseline_keras2 import load_data
 from candlepb.NT3.models.candle_conv_mlp_1 import create_structure
-#from deephyper.search.nas.model.preprocessing import minmaxstdscaler
+from candlepb.NT3.nt3_baseline_keras2 import load_data
+from deephyper.benchmark import NaProblem
 
-# We create our Problem object with the Problem class, you don't have to name your Problem object 'Problem' it can be any name you want. You can also define different problems in the same module.
-Problem = Problem()
+Problem = NaProblem()
 
-# You define if your problem is a regression problem (the reward will be minus of the mean squared error) or a classification problem (the reward will be the accuracy of the network on the validation set).
-Problem.add_dim('regression', False) # NT3 is a classification problem between 2 classes
+Problem.load_data(load_data)
 
-# You define how to load your data by giving a 'load_data' function. This function will return your data set following this interface: (train_X, train_y), (valid_X, valid_y). You can also add a 'kwargs' key with arguments for the load_data function.
-Problem.add_dim('load_data', {
-    'func': load_data,
-})
+# Problem.preprocessing(minmaxstdscaler)
 
-# OPTIONAL : You define a preprocessing function which will be applied on your data before training generated models. This preprocessing function use sklearn preprocessors api.
-#Problem.add_dim('preprocessing', {
-#    'func': minmaxstdscaler
-#})
+Problem.search_space(create_structure)
 
-# You define the create structure function. This function will return an object following the Structure interface. You can also have kwargs arguments such as 'num_cells' for this function.
-Problem.add_dim('create_structure', {
-    'func': create_structure,
-})
+Problem.hyperparameters(
+    batch_size=20,
+    learning_rate=0.01,
+    optimizer='adam',
+    num_epochs=1,
+)
 
-# You define the hyperparameters used to train your generated models during the search.
-Problem.add_dim('hyperparameters', {
-    'batch_size': 20,
-    'learning_rate': 0.01,
-    'optimizer': 'adam',
-    'num_epochs': 1,
-    'loss_metric': 'categorical_crossentropy', # classification
-    'metrics': ['acc']
-})
+Problem.loss('categorical_crossentropy')
 
-# Just to print your problem, to test its definition and imports in the current python environment.
+Problem.metrics(['acc'])
+
+Problem.objective('val_acc__last')
+
+Problem.post_training(
+    num_epochs=1000,
+    metrics=['acc'],
+    model_checkpoint={
+        'monitor': 'val_acc',
+        'mode': 'max',
+        'save_best_only': True,
+        'verbose': 1
+    },
+    early_stopping={
+        'monitor': 'val_acc',
+        'mode': 'max',
+        'verbose': 1,
+        'patience': 20
+    }
+)
+
 if __name__ == '__main__':
     print(Problem)
